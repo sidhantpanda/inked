@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.join(import.meta.dirname, '../../../.env') });
 import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 

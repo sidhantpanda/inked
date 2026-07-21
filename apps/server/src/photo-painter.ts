@@ -23,6 +23,8 @@ export class PhotoPainterClient implements PhotoPainter {
     this.endpoint = process.env.PHOTO_PAINTER_API_URL ?? '';
     if (!this.endpoint) {
       console.error('PHOTO_PAINTER_API_URL not defined in env');
+    } else {
+      console.log(`Using ${this.endpoint} to send the image.`)
     }
   }
 
