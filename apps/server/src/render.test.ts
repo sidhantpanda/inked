@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { Jimp } from 'jimp';
 
 import {
@@ -12,13 +12,21 @@ import {
 import { DemoDashboardDataProvider } from './data.js';
 import {
   WIDGET_TYPOGRAPHY,
+  ensureMeteocons,
   renderDashboard,
   renderDashboardAssets,
   renderWidgetPreview
 } from './render.js';
+import { FakeWeatherService } from './testing/fake-weather.js';
 
 describe('dashboard layout rendering', () => {
-  const dataProvider = new DemoDashboardDataProvider();
+  const dataProvider = new DemoDashboardDataProvider(new FakeWeatherService());
+
+  // Weather icons must be loaded so the sync gallery preview matches the async
+  // dashboard render in the pixel-equivalence test below.
+  beforeAll(async () => {
+    await ensureMeteocons();
+  });
 
   it('uses the same bundled font aliases as the React widgets', () => {
     expect(WIDGET_TYPOGRAPHY.sans).toBe('"Inked Sans"');

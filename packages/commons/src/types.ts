@@ -152,9 +152,17 @@ export interface DashboardRefreshPlan {
 /** No user-configurable options. */
 export type EmptyWidgetSettings = Record<string, never>;
 
+export type TemperatureUnit = 'celsius' | 'fahrenheit';
+
 export interface WeatherWidgetSettings {
-  /** The city whose current conditions and forecast the widget shows. */
+  /** Display name of the place, resolved by geocoding. */
   location: string;
+  /** Resolved coordinates. Absent settings fall back to geocoding `location`. */
+  latitude?: number;
+  longitude?: number;
+  /** IANA timezone for the place; forecast days are labeled in this zone. */
+  timezone?: string;
+  units: TemperatureUnit;
 }
 
 export interface MessageWidgetSettings {
@@ -177,7 +185,13 @@ export type WidgetSettings<K extends WidgetId = WidgetId> = WidgetSettingsMap[K]
 /** Default settings applied when a slot is first assigned a widget. */
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
   clock: {},
-  weather: { location: 'Amsterdam' },
+  weather: {
+    location: 'Amsterdam',
+    latitude: 52.374,
+    longitude: 4.89969,
+    timezone: 'Europe/Amsterdam',
+    units: 'celsius'
+  },
   calendar: {},
   scores: {},
   message: {
@@ -235,16 +249,21 @@ export interface DashboardConfig {
 export interface WeatherData {
   temperature: number;
   condition: string;
+  /** Meteocons icon name for current conditions (see wmoWeather). */
+  icon: string;
   high: number;
   low: number;
   location: string;
   precipitation: number;
+  units: TemperatureUnit;
   forecast: WeatherForecastDay[];
 }
 
 export interface WeatherForecastDay {
   date: string;
   condition: string;
+  /** Meteocons icon name for the day's conditions. */
+  icon: string;
   high: number;
   low: number;
   precipitation: number;

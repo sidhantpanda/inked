@@ -25,7 +25,9 @@ import { MemoryDashboardConfigStore, type DashboardConfigStore } from './config-
 import { DemoDashboardDataProvider, type DashboardDataProvider } from './data.js';
 import { renderFontTest } from './font-test.js';
 import { PhotoPainterClient, type PhotoPainter } from './photo-painter.js';
+import { OpenMeteoWeatherService, type WeatherService } from './widget-data/index.js';
 import {
+  ensureMeteocons,
   renderDashboard,
   renderDashboardAssets,
   renderWidgetPreview,
@@ -43,15 +45,18 @@ export interface BuildAppOptions {
   store?: DashboardConfigStore;
   dataProvider?: DashboardDataProvider;
   photoPainter?: PhotoPainter;
+  weatherService?: WeatherService;
   logger?: boolean;
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? false, bodyLimit: 1_000_000 });
   const store = options.store ?? new MemoryDashboardConfigStore();
-  const dataProvider = options.dataProvider ?? new DemoDashboardDataProvider();
+  const weatherService = options.weatherService ?? new OpenMeteoWeatherService();
+  const dataProvider = options.dataProvider ?? new DemoDashboardDataProvider(weatherService);
   const photoPainter = options.photoPainter ?? new PhotoPainterClient();
   const previewBmps = new Map<string, Buffer>();
+  await ensureMeteocons();
   await app.register(cors, { origin: true });
 
   function rememberPreview(bmp: Buffer) {
@@ -85,6 +90,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       refreshPlan: buildDashboardRefreshPlan(config, WIDGETS)
     };
   });
+
+  app.get<{ Querystring: { q?: string; count?: string } }>(
+    '/api/geocode',
+    async (request, reply) => {
+      const query = (request.query.q ?? '').trim();
+      if (!query) return { results: [] };
+      const count = Math.min(Math.max(Number(request.query.count) || 6, 1), 10);
+      try {
+        const results = await weatherService.geocode(query, count);
+        return { results };
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(502).send({ error: 'Could not reach the geocoding service.' });
+      }
+    }
+  );
 
   app.get('/api/dashboards', async () => ({ dashboards: await store.list() }));
 

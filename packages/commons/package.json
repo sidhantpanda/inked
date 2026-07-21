@@ -10,7 +10,8 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./fonts/*": "./fonts/*"
+    "./fonts/*": "./fonts/*",
+    "./icons/*": "./icons/*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

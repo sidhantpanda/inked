@@ -1,6 +1,7 @@
 import type { DashboardConfig, DashboardData, WidgetInput } from '@inked/commons';
 
 import { fetchDashboardData, resolveSlotInputs } from './widget-data/index.js';
+import { OpenMeteoWeatherService, type WeatherService } from './widget-data/weather-service.js';
 
 export interface DashboardDataProvider {
   /** Default per-widget inputs, used by the widget gallery previews. */
@@ -12,14 +13,16 @@ export interface DashboardDataProvider {
 const TIMEZONE = 'Europe/Amsterdam';
 
 export class DemoDashboardDataProvider implements DashboardDataProvider {
+  constructor(private readonly weather: WeatherService = new OpenMeteoWeatherService()) {}
+
   async getData(now = new Date()): Promise<DashboardData> {
-    return fetchDashboardData({ now, timezone: TIMEZONE });
+    return fetchDashboardData({ now, timezone: TIMEZONE, weather: this.weather });
   }
 
   async resolveSlots(
     config: DashboardConfig,
     now = new Date()
   ): Promise<Record<string, WidgetInput>> {
-    return resolveSlotInputs(config, { now, timezone: TIMEZONE });
+    return resolveSlotInputs(config, { now, timezone: TIMEZONE, weather: this.weather });
   }
 }

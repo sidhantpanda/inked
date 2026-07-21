@@ -13,12 +13,27 @@ function readString(source: Record<string, unknown>, key: string, fallback: stri
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
+function readNumber(source: Record<string, unknown>, key: string): number | undefined {
+  const value = source[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 /** Fills and validates the settings for one assignment against its widget. */
 function normalizeWidgetSettings(widgetId: WidgetId, raw: unknown): WidgetSettingsMap[WidgetId] {
   const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   switch (widgetId) {
-    case 'weather':
-      return { location: readString(source, 'location', DEFAULT_WIDGET_SETTINGS.weather.location) };
+    case 'weather': {
+      const latitude = readNumber(source, 'latitude');
+      const longitude = readNumber(source, 'longitude');
+      const timezone = typeof source.timezone === 'string' ? source.timezone : undefined;
+      return {
+        location: readString(source, 'location', DEFAULT_WIDGET_SETTINGS.weather.location),
+        ...(latitude !== undefined ? { latitude } : {}),
+        ...(longitude !== undefined ? { longitude } : {}),
+        ...(timezone ? { timezone } : {}),
+        units: source.units === 'fahrenheit' ? 'fahrenheit' : 'celsius'
+      };
+    }
     case 'message':
       return {
         eyebrow: readString(source, 'eyebrow', DEFAULT_WIDGET_SETTINGS.message.eyebrow),

@@ -5,13 +5,10 @@ import { PhotoPainterClient, type PhotoPainterError } from './photo-painter.js';
 describe('PhotoPainterClient', () => {
   it('uses the same multipart BMP contract as the existing photo frame integration', async () => {
     let requestBody: BodyInit | null | undefined;
-    const client = new PhotoPainterClient(
-      'https://example.test/api/paint-image-remote',
-      async (_input, init) => {
-        requestBody = init?.body;
-        return new Response(JSON.stringify({ message: 'accepted' }), { status: 200 });
-      }
-    );
+    const client = new PhotoPainterClient(async (_input, init) => {
+      requestBody = init?.body;
+      return new Response(JSON.stringify({ message: 'accepted' }), { status: 200 });
+    });
 
     await expect(client.paint(Buffer.from('BMfake-bmp'))).resolves.toEqual({ message: 'accepted' });
     expect(requestBody).toBeInstanceOf(FormData);
@@ -23,7 +20,6 @@ describe('PhotoPainterClient', () => {
 
   it('surfaces paint API errors with the response body', async () => {
     const client = new PhotoPainterClient(
-      'https://example.test/api/paint-image-remote',
       async () => new Response('unsupported image', { status: 415 })
     );
 

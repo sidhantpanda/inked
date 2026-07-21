@@ -17,14 +17,12 @@ export class PhotoPainterError extends Error {
 export class PhotoPainterClient implements PhotoPainter {
   readonly endpoint: string;
 
-  constructor(
-    private readonly fetchImplementation: typeof fetch = globalThis.fetch
-  ) {
+  constructor(private readonly fetchImplementation: typeof fetch = globalThis.fetch) {
     this.endpoint = process.env.PHOTO_PAINTER_API_URL ?? '';
     if (!this.endpoint) {
       console.error('PHOTO_PAINTER_API_URL not defined in env');
     } else {
-      console.log(`Using ${this.endpoint} to send the image.`)
+      console.log(`Using ${this.endpoint} to send the image.`);
     }
   }
 

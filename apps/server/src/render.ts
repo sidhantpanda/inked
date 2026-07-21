@@ -25,6 +25,9 @@ import {
 } from '@inked/commons';
 
 import { INKED_FONT_FAMILIES } from './fonts.js';
+import { ensureMeteocons, getMeteocon } from './meteocons.js';
+
+export { ensureMeteocons } from './meteocons.js';
 
 export type RenderFormat = 'png' | 'bmp';
 
@@ -109,6 +112,7 @@ export async function renderDashboardAssets(
   config: DashboardConfig,
   slots: ResolvedSlotInputs
 ): Promise<DashboardRenderAssets> {
+  await ensureMeteocons();
   const layout = getLayout(config.layoutId);
   const palette = getPalette(config.theme);
   const canvas = createCanvas(DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -289,13 +293,18 @@ function drawWeather(
           ? rect.width
           : rect.width * 0.4;
   if (currentWidth >= 120) {
-    drawWeatherGlyph(
-      ctx,
-      rect.x + currentWidth - (short ? 42 : 31),
-      rect.y + (short ? 47 : 56),
-      short ? 15 : 17,
-      palette
-    );
+    const iconSize = short ? 44 : 58;
+    const iconCx = rect.x + currentWidth - (short ? 32 : 40);
+    const iconCy = rect.y + (short ? 46 : 58);
+    if (!drawWeatherIcon(ctx, input.icon, iconCx, iconCy, iconSize)) {
+      drawWeatherGlyph(
+        ctx,
+        rect.x + currentWidth - (short ? 42 : 31),
+        rect.y + (short ? 47 : 56),
+        short ? 15 : 17,
+        palette
+      );
+    }
   }
   const temperatureSize =
     size === 'small' || size === 'wide' || short ? 41 : compressedTall ? 49 : 56;
@@ -681,16 +690,20 @@ function drawTallForecast(
       700,
       palette.muted
     );
-    text(
-      ctx,
-      forecastMark(day.condition),
-      rect.x + rect.width * 0.48,
-      y + rowHeight * 0.65,
-      14,
-      700,
-      palette.ink,
-      'center'
-    );
+    const markCx = rect.x + rect.width * 0.48;
+    const iconSize = Math.min(26, rowHeight - 6);
+    if (!drawWeatherIcon(ctx, day.icon, markCx, y + rowHeight * 0.5, iconSize)) {
+      text(
+        ctx,
+        forecastMark(day.condition),
+        markCx,
+        y + rowHeight * 0.65,
+        14,
+        700,
+        palette.ink,
+        'center'
+      );
+    }
     text(
       ctx,
       `${day.high}° / ${day.low}°`,
@@ -727,8 +740,12 @@ function drawForecastCell(
     palette.muted,
     'center'
   );
-  if (!compact)
-    text(ctx, forecastMark(day.condition), center, y + 43, 14, 700, palette.ink, 'center');
+  if (!compact) {
+    const iconSize = Math.min(38, width - 10, height - 40);
+    if (!drawWeatherIcon(ctx, day.icon, center, y + 40, iconSize)) {
+      text(ctx, forecastMark(day.condition), center, y + 43, 14, 700, palette.ink, 'center');
+    }
+  }
   text(
     ctx,
     `${day.high}° / ${day.low}°`,
@@ -821,6 +838,20 @@ function pill(
 function accentBar(ctx: SKRSContext2D, rect: Rect, palette: Palette) {
   ctx.fillStyle = palette.accent;
   ctx.fillRect(rect.x, rect.y + rect.height - 5, rect.width, 5);
+}
+
+/** Draws a bundled Meteocons icon centered at (cx, cy). Returns false if absent. */
+function drawWeatherIcon(
+  ctx: SKRSContext2D,
+  name: string,
+  cx: number,
+  cy: number,
+  size: number
+): boolean {
+  const image = getMeteocon(name);
+  if (!image || size < 8) return false;
+  ctx.drawImage(image, cx - size / 2, cy - size / 2, size, size);
+  return true;
 }
 
 function drawWeatherGlyph(

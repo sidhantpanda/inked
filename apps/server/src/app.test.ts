@@ -21,6 +21,7 @@ import {
 import { buildApp } from './app.js';
 import { MemoryDashboardConfigStore } from './config-store.js';
 import { DemoDashboardDataProvider } from './data.js';
+import { FakeWeatherService } from './testing/fake-weather.js';
 
 interface CatalogResponse {
   layouts: LayoutDefinition[];
@@ -32,9 +33,11 @@ interface CatalogResponse {
 }
 
 function testApp() {
+  const weather = new FakeWeatherService();
   return buildApp({
     store: new MemoryDashboardConfigStore(),
-    dataProvider: new DemoDashboardDataProvider(),
+    dataProvider: new DemoDashboardDataProvider(weather),
+    weatherService: weather,
     photoPainter: {
       endpoint: 'https://example.test/paint',
       paint: vi.fn(async () => ({ message: 'accepted' }))
@@ -134,6 +137,19 @@ describe('Inked API', () => {
     await app.close();
   });
 
+  it('geocodes a place query for the weather picker', async () => {
+    const app = await testApp();
+    const response = await app.inject({ method: 'GET', url: '/api/geocode?q=Amsterdam' });
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{ results: { name: string; latitude: number }[] }>();
+    expect(body.results[0]).toMatchObject({ name: 'Amsterdam', latitude: 52.374 });
+
+    const empty = await app.inject({ method: 'GET', url: '/api/geocode?q=' });
+    expect(empty.statusCode).toBe(200);
+    expect(empty.json<{ results: unknown[] }>().results).toHaveLength(0);
+    await app.close();
+  });
+
   it('persists per-slot widget settings through save and render', async () => {
     const app = await testApp();
     const config = {
@@ -201,7 +217,7 @@ describe('Inked API', () => {
     });
     const app = await buildApp({
       store: new MemoryDashboardConfigStore(),
-      dataProvider: new DemoDashboardDataProvider(),
+      dataProvider: new DemoDashboardDataProvider(new FakeWeatherService()),
       photoPainter: { endpoint: 'https://example.test/paint', paint }
     });
 
@@ -228,7 +244,7 @@ describe('Inked API', () => {
     });
     const app = await buildApp({
       store: new MemoryDashboardConfigStore(),
-      dataProvider: new DemoDashboardDataProvider(),
+      dataProvider: new DemoDashboardDataProvider(new FakeWeatherService()),
       photoPainter: { endpoint: 'https://example.test/paint', paint }
     });
     const response = await app.inject({
@@ -250,7 +266,7 @@ describe('Inked API', () => {
     });
     const app = await buildApp({
       store: new MemoryDashboardConfigStore(),
-      dataProvider: new DemoDashboardDataProvider(),
+      dataProvider: new DemoDashboardDataProvider(new FakeWeatherService()),
       photoPainter: { endpoint: 'https://example.test/paint', paint }
     });
     const config = {
@@ -295,7 +311,7 @@ describe('Inked API', () => {
     const paint = vi.fn(async () => ({ message: 'accepted' }));
     const app = await buildApp({
       store: new MemoryDashboardConfigStore(),
-      dataProvider: new DemoDashboardDataProvider(),
+      dataProvider: new DemoDashboardDataProvider(new FakeWeatherService()),
       photoPainter: { endpoint: 'https://example.test/paint', paint }
     });
     const response = await app.inject({

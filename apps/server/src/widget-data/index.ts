@@ -74,3 +74,8 @@ export type {
   WidgetDataFetcherRegistry,
   WidgetDataFetchContext
 } from './types.js';
+export {
+  OpenMeteoWeatherService,
+  type GeocodeResult,
+  type WeatherService
+} from './weather-service.js';

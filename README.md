@@ -36,7 +36,11 @@ Every widget has a typed input, its own React component, a native canvas rendere
 
 ### Per-widget options
 
-Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather takes a `location`, and Message takes an `eyebrow`, `title`, and `detail`—two Weather panels can therefore track different cities, and several Message panels can each show a distinct note. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering. Widgets without options (Date, Calendar, Sports scores) simply carry empty settings and read live data.
+Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can therefore track different cities, and several Message panels can each show a distinct note. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering. Widgets without options (Date, Calendar, Sports scores) simply carry empty settings and read live data.
+
+### Weather
+
+The Weather widget fetches live conditions and a seven-day forecast from the free [Open-Meteo](https://open-meteo.com/) API (no API key). The studio's city field is a geocoding search backed by `GET /api/geocode`, which resolves a place to coordinates; results are cached and requests fall back to a neutral placeholder when the API is unreachable. Conditions use static [Meteocons](https://meteocons.com/) (fill style) mapped from WMO weather codes in `packages/commons/src/weather.ts`; the native renderer rasterizes them once at startup with `@resvg/resvg-js`. A deterministic `WeatherService` fake keeps the test suite offline.
 
 ### Saved compositions
 
@@ -82,6 +86,7 @@ The server tests assert the BMP signature and 800 × 480 dimensions, and separat
 - `GET /api/catalog`
 - `GET /api/dashboard`
 - `GET /api/dashboards`
+- `GET /api/geocode?q=<place>`
 - `GET /api/refresh-plan`
 - `GET /api/font-test/render?format=png|bmp`
 - `PUT /api/dashboard`

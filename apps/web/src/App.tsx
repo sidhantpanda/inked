@@ -20,6 +20,7 @@ import {
 } from '@inked/commons';
 
 import { CheckIcon, ChevronIcon, DownloadIcon, PaintIcon } from './icons';
+import { WeatherSettings } from './WeatherSettings';
 import { WidgetIcon } from './widgets';
 
 interface DashboardSummary {
@@ -36,20 +37,10 @@ function WidgetSettingsEditor({
   onChange
 }: {
   assignment: SlotAssignment;
-  onChange: (patch: Record<string, string>) => void;
+  onChange: (patch: Record<string, string | number>) => void;
 }) {
   if (assignment.widgetId === 'weather') {
-    return (
-      <label className="settings-field">
-        <span>City</span>
-        <input
-          type="text"
-          value={assignment.settings.location}
-          placeholder="Amsterdam"
-          onChange={(event) => onChange({ location: event.target.value })}
-        />
-      </label>
-    );
+    return <WeatherSettings settings={assignment.settings} onChange={onChange} />;
   }
   if (assignment.widgetId === 'message') {
     return (
@@ -223,7 +214,7 @@ export function App() {
     setStatus({ kind: 'idle', message: 'Unsaved changes' });
   }
 
-  function updateSelectedSettings(patch: Record<string, string>) {
+  function updateSelectedSettings(patch: Record<string, string | number>) {
     setConfig((current) => ({
       ...current,
       assignments: current.assignments.map((assignment) =>
