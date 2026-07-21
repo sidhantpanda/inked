@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.join(import.meta.dirname, '../../../.env') });
@@ -24,6 +24,8 @@ import {
 import { MemoryDashboardConfigStore, type DashboardConfigStore } from './config-store.js';
 import { DemoDashboardDataProvider, type DashboardDataProvider } from './data.js';
 import { renderFontTest } from './font-test.js';
+import { GoogleCalendarService, type CalendarService } from './google-calendar.js';
+import { MemoryGoogleAccountStore } from './google-store.js';
 import { PhotoPainterClient, type PhotoPainter } from './photo-painter.js';
 import { OpenMeteoWeatherService, type WeatherService } from './widget-data/index.js';
 import {
@@ -46,16 +48,29 @@ export interface BuildAppOptions {
   dataProvider?: DashboardDataProvider;
   photoPainter?: PhotoPainter;
   weatherService?: WeatherService;
+  calendarService?: CalendarService;
   logger?: boolean;
+}
+
+function defaultCalendarService(): CalendarService {
+  return new GoogleCalendarService({
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    redirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI ?? '',
+    accounts: new MemoryGoogleAccountStore()
+  });
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? false, bodyLimit: 1_000_000 });
   const store = options.store ?? new MemoryDashboardConfigStore();
   const weatherService = options.weatherService ?? new OpenMeteoWeatherService();
-  const dataProvider = options.dataProvider ?? new DemoDashboardDataProvider(weatherService);
+  const calendarService = options.calendarService ?? defaultCalendarService();
+  const dataProvider =
+    options.dataProvider ?? new DemoDashboardDataProvider(weatherService, calendarService);
   const photoPainter = options.photoPainter ?? new PhotoPainterClient();
   const previewBmps = new Map<string, Buffer>();
+  const pendingOAuthStates = new Set<string>();
   await ensureMeteocons();
   await app.register(cors, { origin: true });
 
@@ -103,6 +118,66 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       } catch (error) {
         request.log.error(error);
         return reply.code(502).send({ error: 'Could not reach the geocoding service.' });
+      }
+    }
+  );
+
+  app.get('/api/google/status', async () => ({ configured: calendarService.isConfigured() }));
+
+  app.get('/api/google/auth', async (request, reply) => {
+    if (!calendarService.isConfigured()) {
+      return reply.code(400).send({ error: 'Google OAuth is not configured on the server.' });
+    }
+    const state = randomUUID();
+    pendingOAuthStates.add(state);
+    setTimeout(() => pendingOAuthStates.delete(state), 10 * 60 * 1000).unref();
+    return reply.redirect(calendarService.getAuthUrl(state));
+  });
+
+  app.get<{ Querystring: { code?: string; state?: string; error?: string } }>(
+    '/api/google/callback',
+    async (request, reply) => {
+      const { code, state, error } = request.query;
+      const closePage = (message: string, ok: boolean) =>
+        reply.type('text/html').send(
+          `<!doctype html><meta charset="utf-8"><body style="font:14px system-ui;padding:24px;color:#18211c">
+             <p>${message}</p>
+             <script>
+               try { window.opener && window.opener.postMessage({ type: 'inked-google', ok: ${String(ok)} }, '*'); } catch (e) {}
+               setTimeout(function () { window.close(); }, 400);
+             </script>
+           </body>`
+        );
+
+      if (error) return closePage(`Google sign-in was cancelled (${error}).`, false);
+      if (!code || !state || !pendingOAuthStates.delete(state)) {
+        return closePage('Sign-in link expired or was invalid. Please try again.', false);
+      }
+      try {
+        const account = await calendarService.handleCallback(code);
+        return closePage(`Connected ${account.email}. You can close this window.`, true);
+      } catch (callbackError) {
+        request.log.error(callbackError);
+        return closePage('Could not connect the Google account. Please try again.', false);
+      }
+    }
+  );
+
+  app.get('/api/google/accounts', async () => ({ accounts: await calendarService.listAccounts() }));
+
+  app.delete<{ Params: { id: string } }>('/api/google/accounts/:id', async (request) => {
+    await calendarService.removeAccount(request.params.id);
+    return { accounts: await calendarService.listAccounts() };
+  });
+
+  app.get<{ Params: { id: string } }>(
+    '/api/google/accounts/:id/calendars',
+    async (request, reply) => {
+      try {
+        return { calendars: await calendarService.listCalendars(request.params.id) };
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(502).send({ error: 'Could not load calendars for this account.' });
       }
     }
   );

@@ -171,11 +171,23 @@ export interface MessageWidgetSettings {
   detail: string;
 }
 
+/** Which calendars to show from one connected Google account. */
+export interface CalendarSource {
+  /** References a stored Google account (google_accounts.id). */
+  accountId: string;
+  /** Calendar ids selected from that account. */
+  calendarIds: string[];
+}
+
+export interface CalendarWidgetSettings {
+  sources: CalendarSource[];
+}
+
 /** The customization each widget accepts. Empty when a widget has no options. */
 export interface WidgetSettingsMap {
   clock: EmptyWidgetSettings;
   weather: WeatherWidgetSettings;
-  calendar: EmptyWidgetSettings;
+  calendar: CalendarWidgetSettings;
   scores: EmptyWidgetSettings;
   message: MessageWidgetSettings;
 }
@@ -192,7 +204,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     timezone: 'Europe/Amsterdam',
     units: 'celsius'
   },
-  calendar: {},
+  calendar: { sources: [] },
   scores: {},
   message: {
     eyebrow: 'Today’s note',
@@ -205,7 +217,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
 export const WIDGET_HAS_SETTINGS: Record<WidgetId, boolean> = {
   clock: false,
   weather: true,
-  calendar: false,
+  calendar: true,
   scores: false,
   message: true
 };
@@ -272,6 +284,8 @@ export interface WeatherForecastDay {
 export interface CalendarEvent {
   id: string;
   time: string;
+  /** Short date shown under the time when the row has room, e.g. "26 Jul". */
+  date?: string;
   title: string;
   tag?: string;
 }

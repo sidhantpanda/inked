@@ -1,6 +1,4 @@
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite';
 
 import { createDefaultDashboard, parseDashboardConfig, type DashboardConfig } from '@inked/commons';
 
@@ -16,11 +14,7 @@ interface DashboardRow {
 
 /** Persists every dashboard composition and the active selection in SQLite. */
 export class SqliteDashboardConfigStore implements DashboardConfigStore {
-  private readonly db: DatabaseSync;
-
-  constructor(filePath: string) {
-    if (filePath !== ':memory:') mkdirSync(path.dirname(filePath), { recursive: true });
-    this.db = new DatabaseSync(filePath);
+  constructor(private readonly db: DatabaseSync) {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS dashboards (
         id TEXT PRIMARY KEY,

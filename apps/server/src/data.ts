@@ -1,5 +1,6 @@
 import type { DashboardConfig, DashboardData, WidgetInput } from '@inked/commons';
 
+import type { CalendarService } from './google-calendar.js';
 import { fetchDashboardData, resolveSlotInputs } from './widget-data/index.js';
 import { OpenMeteoWeatherService, type WeatherService } from './widget-data/weather-service.js';
 
@@ -13,16 +14,29 @@ export interface DashboardDataProvider {
 const TIMEZONE = 'Europe/Amsterdam';
 
 export class DemoDashboardDataProvider implements DashboardDataProvider {
-  constructor(private readonly weather: WeatherService = new OpenMeteoWeatherService()) {}
+  constructor(
+    private readonly weather: WeatherService = new OpenMeteoWeatherService(),
+    private readonly calendar?: CalendarService
+  ) {}
 
   async getData(now = new Date()): Promise<DashboardData> {
-    return fetchDashboardData({ now, timezone: TIMEZONE, weather: this.weather });
+    return fetchDashboardData({
+      now,
+      timezone: TIMEZONE,
+      weather: this.weather,
+      ...(this.calendar ? { calendar: this.calendar } : {})
+    });
   }
 
   async resolveSlots(
     config: DashboardConfig,
     now = new Date()
   ): Promise<Record<string, WidgetInput>> {
-    return resolveSlotInputs(config, { now, timezone: TIMEZONE, weather: this.weather });
+    return resolveSlotInputs(config, {
+      now,
+      timezone: TIMEZONE,
+      weather: this.weather,
+      ...(this.calendar ? { calendar: this.calendar } : {})
+    });
   }
 }

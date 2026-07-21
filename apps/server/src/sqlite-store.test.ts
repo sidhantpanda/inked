@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { createDefaultDashboard } from '@inked/commons';
 
+import { openInkedDatabase } from './db.js';
 import { SqliteDashboardConfigStore } from './sqlite-store.js';
 
 describe('SqliteDashboardConfigStore', () => {
   it('seeds, persists, and switches compositions in SQLite', async () => {
-    const store = new SqliteDashboardConfigStore(':memory:');
+    const store = new SqliteDashboardConfigStore(openInkedDatabase(':memory:'));
 
     const seeded = await store.list();
     expect(seeded).toHaveLength(1);

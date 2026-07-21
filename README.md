@@ -36,11 +36,15 @@ Every widget has a typed input, its own React component, a native canvas rendere
 
 ### Per-widget options
 
-Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can therefore track different cities, and several Message panels can each show a distinct note. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering. Widgets without options (Date, Calendar, Sports scores) simply carry empty settings and read live data.
+Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Calendar stores `sources` (which Google accounts and calendars to show); Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can track different cities, several Calendar panels can each show a different set of calendars, and Message panels can each show a distinct note. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering. Widgets without options (Date, Sports scores) carry empty settings and read live data.
 
 ### Weather
 
 The Weather widget fetches live conditions and a seven-day forecast from the free [Open-Meteo](https://open-meteo.com/) API (no API key). The studio's city field is a geocoding search backed by `GET /api/geocode`, which resolves a place to coordinates; results are cached and requests fall back to a neutral placeholder when the API is unreachable. Conditions use static [Meteocons](https://meteocons.com/) (fill style) mapped from WMO weather codes in `packages/commons/src/weather.ts`; the native renderer rasterizes them once at startup with `@resvg/resvg-js`. A deterministic `WeatherService` fake keeps the test suite offline.
+
+### Calendar
+
+The Calendar widget shows upcoming events from one or more connected Google accounts (read-only). Accounts are connected in the studio via OAuth 2.0 and stored, with their refresh/access tokens, in the `google_accounts` SQLite table; each widget's `sources` reference those accounts by id and pick which of their calendars to show. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI` (see `.env.example`) to enable it. `GoogleCalendarService` handles the OAuth exchange, token refresh, calendar list, and event fetch over the REST API; a `CalendarService` fake keeps the suite offline, and the widget falls back to a demo agenda before any calendars are selected.
 
 ### Saved compositions
 
@@ -87,6 +91,10 @@ The server tests assert the BMP signature and 800 × 480 dimensions, and separat
 - `GET /api/dashboard`
 - `GET /api/dashboards`
 - `GET /api/geocode?q=<place>`
+- `GET /api/google/status`
+- `GET /api/google/auth` · `GET /api/google/callback`
+- `GET /api/google/accounts` · `DELETE /api/google/accounts/:id`
+- `GET /api/google/accounts/:id/calendars`
 - `GET /api/refresh-plan`
 - `GET /api/font-test/render?format=png|bmp`
 - `PUT /api/dashboard`

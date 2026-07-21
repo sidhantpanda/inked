@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { WIDGET_IDS, createAssignment, createDefaultDashboard } from '@inked/commons';
 
+import { FakeCalendarService } from '../testing/fake-calendar.js';
 import {
   WIDGET_DATA_FETCHERS,
   fetchDashboardData,
@@ -67,5 +68,18 @@ describe('widget data fetchers', () => {
     expect(JSON.stringify(tokyo)).not.toBe(JSON.stringify(reykjavik));
     expect(message).toBeTruthy();
     expect(slots['south-west']).toMatchObject({ title: 'Water the plants' });
+  });
+
+  it('fetches real calendar events from the selected sources', async () => {
+    const calendarContext = { ...context, calendar: new FakeCalendarService() };
+    const input = await fetchWidgetInput('calendar', calendarContext, {
+      sources: [{ accountId: 'acc-1', calendarIds: ['primary'] }]
+    });
+    expect(input.events.length).toBeGreaterThan(0);
+    expect(input.events[0]).toMatchObject({ title: 'Standup', tag: 'home@example.com' });
+
+    // With no sources selected it falls back to the demo agenda.
+    const demo = await fetchWidgetInput('calendar', calendarContext, { sources: [] });
+    expect(demo.events).toHaveLength(5);
   });
 });

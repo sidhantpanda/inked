@@ -21,6 +21,7 @@ import {
 import { buildApp } from './app.js';
 import { MemoryDashboardConfigStore } from './config-store.js';
 import { DemoDashboardDataProvider } from './data.js';
+import { FakeCalendarService } from './testing/fake-calendar.js';
 import { FakeWeatherService } from './testing/fake-weather.js';
 
 interface CatalogResponse {
@@ -34,10 +35,12 @@ interface CatalogResponse {
 
 function testApp() {
   const weather = new FakeWeatherService();
+  const calendar = new FakeCalendarService();
   return buildApp({
     store: new MemoryDashboardConfigStore(),
-    dataProvider: new DemoDashboardDataProvider(weather),
+    dataProvider: new DemoDashboardDataProvider(weather, calendar),
     weatherService: weather,
+    calendarService: calendar,
     photoPainter: {
       endpoint: 'https://example.test/paint',
       paint: vi.fn(async () => ({ message: 'accepted' }))
@@ -134,6 +137,29 @@ describe('Inked API', () => {
       url: '/api/dashboards/nope/activate'
     });
     expect(missing.statusCode).toBe(404);
+    await app.close();
+  });
+
+  it('exposes Google account and calendar management', async () => {
+    const app = await testApp();
+
+    const status = await app.inject({ method: 'GET', url: '/api/google/status' });
+    expect(status.json<{ configured: boolean }>().configured).toBe(true);
+
+    const accounts = await app.inject({ method: 'GET', url: '/api/google/accounts' });
+    const accountList = accounts.json<{ accounts: { id: string; email: string }[] }>().accounts;
+    expect(accountList[0]).toMatchObject({ id: 'acc-1', email: 'home@example.com' });
+
+    const calendars = await app.inject({
+      method: 'GET',
+      url: '/api/google/accounts/acc-1/calendars'
+    });
+    const calendarList = calendars.json<{ calendars: { id: string; primary: boolean }[] }>()
+      .calendars;
+    expect(calendarList.find((calendar) => calendar.primary)?.id).toBe('primary');
+
+    const removed = await app.inject({ method: 'DELETE', url: '/api/google/accounts/acc-1' });
+    expect(removed.json<{ accounts: unknown[] }>().accounts).toHaveLength(0);
     await app.close();
   });
 

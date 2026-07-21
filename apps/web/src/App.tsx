@@ -19,6 +19,7 @@ import {
   type WidgetId
 } from '@inked/commons';
 
+import { CalendarSettings } from './CalendarSettings';
 import { CheckIcon, ChevronIcon, DownloadIcon, PaintIcon } from './icons';
 import { WeatherSettings } from './WeatherSettings';
 import { WidgetIcon } from './widgets';
@@ -37,10 +38,13 @@ function WidgetSettingsEditor({
   onChange
 }: {
   assignment: SlotAssignment;
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: Record<string, unknown>) => void;
 }) {
   if (assignment.widgetId === 'weather') {
     return <WeatherSettings settings={assignment.settings} onChange={onChange} />;
+  }
+  if (assignment.widgetId === 'calendar') {
+    return <CalendarSettings settings={assignment.settings} onChange={onChange} />;
   }
   if (assignment.widgetId === 'message') {
     return (
@@ -214,7 +218,7 @@ export function App() {
     setStatus({ kind: 'idle', message: 'Unsaved changes' });
   }
 
-  function updateSelectedSettings(patch: Record<string, string | number>) {
+  function updateSelectedSettings(patch: Record<string, unknown>) {
     setConfig((current) => ({
       ...current,
       assignments: current.assignments.map((assignment) =>

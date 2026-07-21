@@ -34,6 +34,20 @@ function normalizeWidgetSettings(widgetId: WidgetId, raw: unknown): WidgetSettin
         units: source.units === 'fahrenheit' ? 'fahrenheit' : 'celsius'
       };
     }
+    case 'calendar': {
+      const rawSources = Array.isArray(source.sources) ? source.sources : [];
+      const sources = rawSources
+        .map((entry) => {
+          const item = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {};
+          const accountId = typeof item.accountId === 'string' ? item.accountId : '';
+          const calendarIds = Array.isArray(item.calendarIds)
+            ? item.calendarIds.filter((id): id is string => typeof id === 'string')
+            : [];
+          return { accountId, calendarIds };
+        })
+        .filter((entry) => entry.accountId);
+      return { sources };
+    }
     case 'message':
       return {
         eyebrow: readString(source, 'eyebrow', DEFAULT_WIDGET_SETTINGS.message.eyebrow),
