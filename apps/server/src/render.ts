@@ -7,6 +7,9 @@ import {
   DISPLAY_PADDING,
   DISPLAY_WIDTH,
   MIN_WIDGET_FONT_SIZE,
+  formatCompactSportsSession,
+  formatSportsEventTiming,
+  groupSportsEvents,
   getLayout,
   type CalendarWidgetInput,
   type DashboardConfig,
@@ -16,6 +19,7 @@ import {
   type LayoutSlot,
   type MessageWidgetInput,
   type ScoresWidgetInput,
+  type SportsEventGroup,
   type WidgetId,
   type WidgetInput,
   type WidgetInputMap,
@@ -442,78 +446,217 @@ function drawScores(
   input: ScoresWidgetInput,
   palette: Palette
 ) {
-  label(ctx, rect, 'MATCH CENTRE', palette);
+  label(ctx, rect, 'SPORTS', palette);
+  const narrow = rect.width < 300;
+  const short = rect.height < 260;
+  const fullWidth = size === 'full' && rect.width >= 650;
   const limit =
-    size === 'small'
-      ? 1
-      : size === 'wide'
-        ? 2
-        : size === 'tall'
-          ? rect.height < 240
-            ? 2
-            : 3
-          : size === 'large'
-            ? 3
-            : 4;
-  const games = input.games.slice(0, limit);
-  const candidateAreaWidth = rect.width / Math.max(games.length, 1);
-  const horizontal = (size === 'wide' || size === 'full') && candidateAreaWidth >= 180;
-  const compactHeight = rect.height < 130;
-  const contentTop = rect.y + 46;
-  const contentBottom = rect.y + rect.height - 12;
-  const verticalRowHeight = (contentBottom - contentTop) / Math.max(games.length, 1);
-  games.forEach((game, index) => {
-    const areaWidth = horizontal ? rect.width / games.length : rect.width;
-    const x = horizontal ? rect.x + index * areaWidth : rect.x;
-    const rowTop = horizontal ? contentTop : contentTop + index * verticalRowHeight;
-    if (index > 0) {
-      if (horizontal) line(ctx, x, contentTop, x, contentBottom, palette.line);
-      else line(ctx, rect.x + 18, rowTop, rect.x + rect.width - 18, rowTop, palette.line);
+    size === 'small' ? 1 : narrow ? (rect.height < 240 ? 2 : 3) : fullWidth ? 4 : short ? 2 : 4;
+  const groups = groupSportsEvents(input.events).slice(0, limit);
+  if (groups.length === 0) {
+    clippedText(
+      ctx,
+      'No upcoming events',
+      rect.x + 18,
+      rect.y + 77,
+      rect.width - 36,
+      16,
+      600,
+      palette.muted
+    );
+    return;
+  }
+  const contentTop = rect.y + 48;
+  const contentHeight = rect.y + rect.height - 12 - contentTop;
+  const columns = groups.length === 1 ? 1 : fullWidth ? Math.min(4, groups.length) : narrow ? 1 : 2;
+  const rows = Math.ceil(groups.length / columns);
+  const rowHeight = contentHeight / rows;
+  const columnWidth = rect.width / columns;
+  groups.forEach((group, index) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const spanLastRow =
+      columns === 2 && groups.length % 2 === 1 && index === groups.length - 1 && size !== 'wide';
+    const cell = {
+      x: spanLastRow ? rect.x : rect.x + column * columnWidth,
+      y: contentTop + row * rowHeight,
+      width: spanLastRow ? rect.width : columnWidth,
+      height: rowHeight
+    };
+    if (row > 0 && column === 0) {
+      line(ctx, rect.x + 18, cell.y, rect.x + rect.width - 18, cell.y, palette.line);
     }
+    if (column > 0) {
+      line(ctx, cell.x, cell.y, cell.x, cell.y + cell.height, palette.line);
+    }
+    drawSportsEventCell(ctx, cell, group, input.timezone, palette);
+  });
+}
 
-    const denseVertical = !horizontal && verticalRowHeight < 66;
-    if (denseVertical) {
-      fittedText(
+function drawSportsEventCell(
+  ctx: SKRSContext2D,
+  rect: Rect,
+  group: SportsEventGroup,
+  timezone: string,
+  palette: Palette
+) {
+  if (group.type === 'sessions') {
+    drawSportsSessionGroup(ctx, rect, group, timezone, palette);
+    return;
+  }
+  const event = group.event;
+  const timing = formatSportsEventTiming(event, timezone);
+  const x = rect.x + 18;
+  const right = rect.x + rect.width - 18;
+  const width = Math.max(30, rect.width - 36);
+  const compact = rect.height < 96;
+  const primaryTimingY = rect.y + rect.height - (timing.secondary ? 27 : 11);
+  const secondaryTimingY = rect.y + rect.height - 9;
+
+  if (compact) {
+    const timingReserve = 82;
+    const teamWidth = Math.max(30, width - timingReserve);
+    const veryCompact = rect.height < 70;
+    const firstTeamY = rect.y + (veryCompact ? 20 : 24);
+    const secondTeamY = rect.y + (veryCompact ? 42 : 51);
+    const home = `${event.home}${event.homeScore === undefined ? '' : ` ${event.homeScore}`}`;
+    const away = `${event.away}${event.awayScore === undefined ? '' : ` ${event.awayScore}`}`;
+    clippedText(ctx, home, x, firstTeamY, teamWidth, 16, 700, palette.ink);
+    clippedText(ctx, away, x, secondTeamY, teamWidth, 16, 700, palette.ink);
+    text(
+      ctx,
+      timing.primary,
+      right,
+      firstTeamY,
+      14,
+      800,
+      event.state === 'live' ? palette.accent : palette.ink,
+      'right'
+    );
+    if (timing.secondary)
+      text(ctx, timing.secondary, right, secondTeamY, 14, 600, palette.muted, 'right');
+    return;
+  }
+  clippedText(ctx, event.competition, x, rect.y + 17, width, 14, 700, palette.muted);
+  const firstTeamY = rect.y + 47;
+  const secondTeamY = firstTeamY + 25;
+  clippedText(ctx, event.home, x, firstTeamY, width - 30, 18, 700, palette.ink);
+  clippedText(ctx, event.away, x, secondTeamY, width - 30, 18, 700, palette.ink);
+  if (event.homeScore !== undefined)
+    text(ctx, String(event.homeScore), right, firstTeamY, 18, 800, palette.ink, 'right');
+  if (event.awayScore !== undefined)
+    text(ctx, String(event.awayScore), right, secondTeamY, 18, 800, palette.ink, 'right');
+  const timingColor = event.state === 'live' ? palette.accent : palette.ink;
+  text(ctx, timing.primary, x, primaryTimingY, 14, 800, timingColor);
+  if (timing.secondary) {
+    text(ctx, timing.secondary, x, secondaryTimingY, 14, 600, palette.muted);
+  }
+}
+
+function drawSportsSessionGroup(
+  ctx: SKRSContext2D,
+  rect: Rect,
+  group: Extract<SportsEventGroup, { type: 'sessions' }>,
+  timezone: string,
+  palette: Palette
+) {
+  const x = rect.x + 18;
+  const right = rect.x + rect.width - 18;
+  const width = Math.max(30, rect.width - 36);
+  const compact = rect.height < 96;
+  const veryCompact = rect.height < 70;
+  if (veryCompact) {
+    fittedText(ctx, group.name, x, rect.y + 18, width, 17, 700, palette.ink);
+    const session = group.sessions[0];
+    if (session) {
+      const timing = formatSportsEventTiming(session, timezone);
+      const remaining = group.sessions.length - 1;
+      const label = `${formatCompactSportsSession(session.session)}${remaining > 0 ? ` +${remaining}` : ''}`;
+      clippedText(
         ctx,
-        `${game.home} ${game.homeScore} · ${game.away} ${game.awayScore}`,
-        x + 18,
-        rowTop + verticalRowHeight / 2 + 5,
-        areaWidth - 36,
-        17,
-        700,
+        label.toUpperCase(),
+        x,
+        rect.y + 41,
+        Math.max(30, width - 86),
+        14,
+        800,
         palette.ink
       );
-      return;
+      text(
+        ctx,
+        timing.primary,
+        right,
+        rect.y + 41,
+        14,
+        800,
+        session.state === 'live' ? palette.accent : palette.ink,
+        'right'
+      );
     }
+    return;
+  }
+  if (compact) fittedText(ctx, group.name, x, rect.y + 18, width, 17, 700, palette.ink);
+  else wrapText(ctx, group.name, x, rect.y + 18, width, 16, 700, palette.ink, 2);
 
-    const showStatus = !compactHeight && (horizontal || verticalRowHeight >= 74);
-    const statusReserve = showStatus ? 82 : 0;
-    const firstBaseline = rowTop + (horizontal ? 19 : 25);
-    const secondBaseline = rowTop + (horizontal ? 46 : 51);
+  const showVenue = !compact && rect.height >= 145 && Boolean(group.venue);
+  if (showVenue && group.venue)
+    clippedText(ctx, group.venue, x, rect.y + 54, width, 14, 600, palette.muted);
+  const rowsTop = rect.y + (compact ? 26 : showVenue ? 66 : 45);
+  const availableHeight = rect.y + rect.height - 5 - rowsTop;
+  const capacity = compact ? 1 : rect.height >= 185 ? 4 : rect.height >= 140 ? 3 : 2;
+  const hasMore = group.sessions.length > capacity;
+  const showMoreRow = hasMore && !compact;
+  const visibleCount =
+    showMoreRow && capacity > 1 ? capacity - 1 : Math.min(capacity, group.sessions.length);
+  const rowCount = visibleCount + (showMoreRow ? 1 : 0);
+  const rowHeight = availableHeight / Math.max(rowCount, 1);
+
+  group.sessions.slice(0, visibleCount).forEach((session, index) => {
+    const rowTop = rowsTop + index * rowHeight;
+    if (index > 0) line(ctx, x, rowTop, right, rowTop, palette.line);
+    const timing = formatSportsEventTiming(session, timezone);
+    const remaining = compact ? group.sessions.length - 1 : 0;
+    const label = `${
+      rect.width < 220 ? formatCompactSportsSession(session.session) : session.session
+    }${remaining > 0 ? ` +${remaining}` : ''}`;
     clippedText(
       ctx,
-      `${game.home}  ${game.homeScore}`,
-      x + 18,
-      firstBaseline,
-      Math.max(30, areaWidth - 36 - statusReserve),
-      horizontal ? 18 : 17,
-      700,
+      label.toUpperCase(),
+      x,
+      rowTop + 18,
+      Math.max(30, width - 88),
+      14,
+      800,
       palette.ink
     );
-    clippedText(
+    text(
       ctx,
-      `${game.away}  ${game.awayScore}`,
-      x + 18,
-      secondBaseline,
-      Math.max(30, areaWidth - 36 - statusReserve),
-      horizontal ? 18 : 17,
-      700,
-      palette.ink
+      timing.primary,
+      right,
+      rowTop + 16,
+      14,
+      800,
+      session.state === 'live' ? palette.accent : palette.ink,
+      'right'
     );
-    if (showStatus) {
-      pill(ctx, game.status, x + areaWidth - 14, rowTop + 4, game.live, palette);
-    }
+    if (timing.secondary)
+      text(ctx, timing.secondary, right, rowTop + 33, 14, 600, palette.muted, 'right');
   });
+
+  if (showMoreRow) {
+    const rowTop = rowsTop + visibleCount * rowHeight;
+    if (visibleCount > 0) line(ctx, x, rowTop, right, rowTop, palette.line);
+    const remaining = group.sessions.length - visibleCount;
+    text(
+      ctx,
+      `+${remaining} more ${remaining === 1 ? 'session' : 'sessions'}`,
+      x,
+      rowTop + Math.min(22, rowHeight - 5),
+      14,
+      700,
+      palette.muted
+    );
+  }
 }
 
 function drawMessage(
@@ -821,33 +964,6 @@ function label(ctx: SKRSContext2D, rect: Rect, value: string, palette: Palette) 
   ctx.beginPath();
   ctx.arc(rect.x + rect.width - 22, rect.y + 25, 5, 0, Math.PI * 2);
   ctx.fill();
-}
-
-function pill(
-  ctx: SKRSContext2D,
-  value: string,
-  right: number,
-  y: number,
-  live: boolean,
-  palette: Palette
-) {
-  const fontSize = MIN_WIDGET_FONT_SIZE;
-  setTextStyle(ctx, fontSize, 800);
-  const width = Math.max(48, ctx.measureText(value).width + 14);
-  const x = right - width;
-  roundRect(ctx, x, y, width, 26, 13);
-  ctx.fillStyle = live ? palette.accent : palette.cardAlt;
-  ctx.fill();
-  text(
-    ctx,
-    value,
-    x + width / 2,
-    y + 18,
-    fontSize,
-    800,
-    live ? palette.accentInk : palette.ink,
-    'center'
-  );
 }
 
 function accentBar(ctx: SKRSContext2D, rect: Rect, palette: Palette) {

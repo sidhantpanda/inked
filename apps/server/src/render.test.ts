@@ -71,7 +71,7 @@ describe('dashboard layout rendering', () => {
 
     expect(data.weather.forecast).toHaveLength(7);
     expect(data.calendar.events).toHaveLength(5);
-    expect(data.scores.games).toHaveLength(4);
+    expect(data.scores.events).toHaveLength(4);
   });
 
   it('keeps every preview PNG pixel identical to its PhotoPainter BMP counterpart', async () => {

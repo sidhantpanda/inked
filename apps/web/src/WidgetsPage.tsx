@@ -1,14 +1,17 @@
 import { useState } from 'react';
 
 import {
+  SPORTS_PREVIEW_PRESETS,
   WIDGET_LAYOUT_VARIANTS,
   WIDGET_SIZES,
   WIDGET_SIZE_DEFINITIONS,
   WIDGETS,
   formatRefreshPolicy,
+  isSportsPreviewPresetId,
   type WidgetId,
   type WidgetLayoutVariant,
-  type WidgetSize
+  type WidgetSize,
+  type SportsPreviewPresetId
 } from '@inked/commons';
 
 import { WidgetIcon } from './widgets';
@@ -18,8 +21,17 @@ function initialWidgetId(): WidgetId {
   return WIDGETS.find((widget) => widget.id === requested)?.id ?? WIDGETS[0].id;
 }
 
+type SportsPreviewMode = 'variety' | SportsPreviewPresetId;
+
+function initialSportsPreviewMode(): SportsPreviewMode {
+  const requested = new URLSearchParams(window.location.search).get('preset');
+  return isSportsPreviewPresetId(requested) ? requested : 'variety';
+}
+
 export function WidgetsPage() {
   const [selectedId, setSelectedId] = useState<WidgetId>(initialWidgetId);
+  const [sportsPreviewMode, setSportsPreviewMode] =
+    useState<SportsPreviewMode>(initialSportsPreviewMode);
   const selectedWidget = WIDGETS.find((widget) => widget.id === selectedId) ?? WIDGETS[0];
   const layoutSlotCount = WIDGET_LAYOUT_VARIANTS.reduce(
     (total, variant) => total + variant.usages.length,
@@ -28,7 +40,12 @@ export function WidgetsPage() {
 
   function selectWidget(widgetId: WidgetId) {
     setSelectedId(widgetId);
-    window.history.replaceState(null, '', `/widgets?widget=${widgetId}`);
+    updateGalleryUrl(widgetId, sportsPreviewMode);
+  }
+
+  function selectSportsPreviewMode(mode: SportsPreviewMode) {
+    setSportsPreviewMode(mode);
+    updateGalleryUrl('scores', mode);
   }
 
   return (
@@ -98,6 +115,42 @@ export function WidgetsPage() {
             </div>
           </header>
 
+          {selectedId === 'scores' && (
+            <section className="sports-preview-configs" aria-labelledby="sports-preview-heading">
+              <div>
+                <span className="eyebrow">Preview configurations</span>
+                <h3 id="sports-preview-heading">Test different sports</h3>
+                <p>
+                  Variety rotates sports across every size. Choose one preset to compare the same
+                  sport across all geometries.
+                </p>
+              </div>
+              <div className="sports-preview-config-list">
+                <button
+                  type="button"
+                  className={sportsPreviewMode === 'variety' ? 'is-selected' : ''}
+                  aria-pressed={sportsPreviewMode === 'variety'}
+                  onClick={() => selectSportsPreviewMode('variety')}
+                >
+                  <strong>Variety</strong>
+                  <span>All sports</span>
+                </button>
+                {SPORTS_PREVIEW_PRESETS.map((preset) => (
+                  <button
+                    type="button"
+                    key={preset.id}
+                    className={sportsPreviewMode === preset.id ? 'is-selected' : ''}
+                    aria-pressed={sportsPreviewMode === preset.id}
+                    onClick={() => selectSportsPreviewMode(preset.id)}
+                  >
+                    <strong>{preset.name}</strong>
+                    <span>{preset.sport}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="widget-size-groups">
             {WIDGET_SIZES.map((size) => {
               const definition = WIDGET_SIZE_DEFINITIONS[size];
@@ -129,12 +182,21 @@ export function WidgetsPage() {
                     </div>
                   </header>
                   <div className={`widget-layout-variant-grid widget-layout-variant-grid--${size}`}>
-                    {variants.map((variant) => (
+                    {variants.map((variant, index) => (
                       <WidgetVariantCard
                         key={variant.id}
                         widgetId={selectedWidget.id}
                         size={size}
                         variant={variant}
+                        {...(selectedWidget.id === 'scores'
+                          ? {
+                              sportsPreset:
+                                sportsPreviewMode === 'variety'
+                                  ? SPORTS_PREVIEW_PRESETS[index % SPORTS_PREVIEW_PRESETS.length]!
+                                      .id
+                                  : sportsPreviewMode
+                            }
+                          : {})}
                       />
                     ))}
                   </div>
@@ -148,18 +210,29 @@ export function WidgetsPage() {
   );
 }
 
+function updateGalleryUrl(widgetId: WidgetId, sportsPreviewMode: SportsPreviewMode) {
+  const parameters = new URLSearchParams({ widget: widgetId });
+  if (widgetId === 'scores' && sportsPreviewMode !== 'variety') {
+    parameters.set('preset', sportsPreviewMode);
+  }
+  window.history.replaceState(null, '', `/widgets?${parameters.toString()}`);
+}
+
 function WidgetVariantCard({
   widgetId,
   size,
-  variant
+  variant,
+  sportsPreset
 }: {
   widgetId: WidgetId;
   size: WidgetSize;
   variant: WidgetLayoutVariant;
+  sportsPreset?: SportsPreviewPresetId;
 }) {
   const definition = WIDGET_SIZE_DEFINITIONS[size];
   const widget = WIDGETS.find((candidate) => candidate.id === widgetId) ?? WIDGETS[0];
   const content = widget.variants[size];
+  const preset = SPORTS_PREVIEW_PRESETS.find((candidate) => candidate.id === sportsPreset);
 
   return (
     <article className="widget-variant-card">
@@ -172,12 +245,15 @@ function WidgetVariantCard({
             <p>{content.name}</p>
           </div>
         </div>
-        <span className="widget-pixel-size">Native PNG</span>
+        <div className="widget-preview-meta">
+          {preset && <span className="widget-preview-preset">{preset.name}</span>}
+          <span className="widget-pixel-size">Native PNG</span>
+        </div>
       </header>
       <div className={`widget-variant-preview widget-variant-preview--${size}`}>
         <img
           key={`${widgetId}-${variant.id}`}
-          src={`/api/widgets/${widgetId}/${variant.id}/preview`}
+          src={`/api/widgets/${widgetId}/${variant.id}/preview${sportsPreset ? `?preset=${sportsPreset}` : ''}`}
           width={variant.width}
           height={variant.height}
           alt={`${widget.name} ${definition.name} preview at ${variant.width} by ${variant.height} pixels`}

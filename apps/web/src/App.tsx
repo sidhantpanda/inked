@@ -22,6 +22,7 @@ import {
 import { CalendarSettings } from './CalendarSettings';
 import { CheckIcon, ChevronIcon, DownloadIcon, PaintIcon } from './icons';
 import { WeatherSettings } from './WeatherSettings';
+import { SportsSettings } from './SportsSettings';
 import { WidgetIcon } from './widgets';
 
 interface DashboardSummary {
@@ -45,6 +46,11 @@ function WidgetSettingsEditor({
   }
   if (assignment.widgetId === 'calendar') {
     return <CalendarSettings settings={assignment.settings} onChange={onChange} />;
+  }
+  if (assignment.widgetId === 'scores') {
+    return (
+      <SportsSettings key={assignment.slotId} settings={assignment.settings} onChange={onChange} />
+    );
   }
   if (assignment.widgetId === 'message') {
     return (

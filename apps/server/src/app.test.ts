@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  SPORTS_PREVIEW_PRESETS,
   WIDGET_IDS,
   WIDGET_LAYOUT_VARIANTS,
   WIDGET_PREVIEW_DIMENSIONS,
@@ -22,6 +23,7 @@ import { buildApp } from './app.js';
 import { MemoryDashboardConfigStore } from './config-store.js';
 import { DemoDashboardDataProvider } from './data.js';
 import { FakeCalendarService } from './testing/fake-calendar.js';
+import { FakeSportsService } from './testing/fake-sports.js';
 import { FakeWeatherService } from './testing/fake-weather.js';
 
 interface CatalogResponse {
@@ -36,11 +38,13 @@ interface CatalogResponse {
 function testApp() {
   const weather = new FakeWeatherService();
   const calendar = new FakeCalendarService();
+  const sports = new FakeSportsService();
   return buildApp({
     store: new MemoryDashboardConfigStore(),
     dataProvider: new DemoDashboardDataProvider(weather, calendar),
     weatherService: weather,
     calendarService: calendar,
+    sportsService: sports,
     photoPainter: {
       endpoint: 'https://example.test/paint',
       paint: vi.fn(async () => ({ message: 'accepted' }))
@@ -95,6 +99,29 @@ describe('Inked API', () => {
     expect(missingVariant.statusCode).toBe(404);
     await app.close();
   }, 30_000);
+
+  it('renders each configured sports gallery preset', async () => {
+    const app = await testApp();
+    const variant = WIDGET_LAYOUT_VARIANTS.find((candidate) => candidate.size === 'tall')!;
+
+    for (const preset of SPORTS_PREVIEW_PRESETS) {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/widgets/scores/${variant.id}/preview?preset=${preset.id}`
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('image/png');
+      expect(response.rawPayload.readUInt32BE(16)).toBe(variant.width);
+      expect(response.rawPayload.readUInt32BE(20)).toBe(variant.height);
+    }
+
+    const missing = await app.inject({
+      method: 'GET',
+      url: `/api/widgets/scores/${variant.id}/preview?preset=quidditch`
+    });
+    expect(missing.statusCode).toBe(404);
+    await app.close();
+  });
 
   it('manages multiple saved compositions', async () => {
     const app = await testApp();
@@ -176,6 +203,21 @@ describe('Inked API', () => {
     await app.close();
   });
 
+  it('lists provider-neutral sports and teams', async () => {
+    const app = await testApp();
+    const catalog = await app.inject({ method: 'GET', url: '/api/sports/catalog' });
+    expect(catalog.statusCode).toBe(200);
+    expect(catalog.json<{ sports: { id: string }[] }>().sports[0]?.id).toBe('football');
+
+    const teams = await app.inject({
+      method: 'GET',
+      url: '/api/sports/competitions/premier-league/teams'
+    });
+    expect(teams.statusCode).toBe(200);
+    expect(teams.json<{ teams: { name: string }[] }>().teams[0]?.name).toBe('Arsenal');
+    await app.close();
+  });
+
   it('persists per-slot widget settings through save and render', async () => {
     const app = await testApp();
     const config = {
@@ -210,12 +252,12 @@ describe('Inked API', () => {
     const response = await app.inject({ method: 'GET', url: '/api/refresh-plan' });
     expect(response.statusCode).toBe(200);
     const plan = response.json<DashboardRefreshPlan>();
-    expect(plan).toMatchObject({ intervalMinutes: 5, label: 'Every 5 min' });
+    expect(plan).toMatchObject({ intervalMinutes: 15, label: 'Every 15 min' });
     expect(plan.widgets.find((widget) => widget.widgetId === 'scores')).toMatchObject({
       widgetId: 'scores',
-      label: '5 min',
-      intervalMinutes: 5,
-      policy: { mode: 'interval', everyMinutes: 5 }
+      label: '15 min',
+      intervalMinutes: 15,
+      policy: { mode: 'interval', everyMinutes: 15 }
     });
     await app.close();
   });

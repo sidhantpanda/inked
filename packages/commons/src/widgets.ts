@@ -115,37 +115,38 @@ export const WIDGETS = [
   }),
   defineWidget({
     id: 'scores',
-    name: 'Sports scores',
-    description: 'Live and upcoming games.',
+    name: 'Sports',
+    description: 'The leagues, teams, races, and sessions you follow.',
     refresh: {
       mode: 'interval',
-      everyMinutes: 5,
-      reason: 'Live scores are the fastest-changing supported content.'
+      everyMinutes: 15,
+      reason: 'Schedules and active events stay current while shared caching protects providers.'
     },
     variants: {
-      small: plan('Glance', 'One priority score.', 'teams', 'score', 'status'),
-      wide: plan('Strip', 'Two scores side by side.', 'two games', 'scores', 'status'),
+      small: plan('Glance', 'One focused event card.', 'matchup or session', 'date and time'),
+      wide: plan('Strip', 'Two event cards side by side.', 'two events', 'date and time'),
       tall: plan(
-        'Rail',
-        'Two or three stacked scores as height allows.',
-        'stacked games',
-        'scores',
-        'status'
+        'Timeline',
+        'Three full-width events in chronological order.',
+        'event names',
+        'sessions or teams',
+        'date and time'
       ),
       large: plan(
-        'Feature',
-        'Three games with competition context.',
-        'three games',
+        'Event grid',
+        'Two or four event cards, based on available geometry.',
+        'adaptive event grid',
         'competitions',
-        'scores'
+        'sessions or scores',
+        'date and time'
       ),
       full: plan(
         'Canvas',
-        'Four live and upcoming games.',
-        'four games',
+        'Four live and upcoming events across the canvas.',
+        'four-column event grid',
         'competitions',
-        'scores',
-        'statuses'
+        'sessions or scores',
+        'date and time'
       )
     }
   }),

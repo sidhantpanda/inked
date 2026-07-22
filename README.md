@@ -30,13 +30,13 @@ The catalog includes ten fixed, code-defined compositions, ranging from three to
 - **Bento eight** — eight mixed-scale positions.
 - **Data matrix** — eight consistent high-density tiles.
 
-Five widgets are implemented for the standard small, wide, tall, large, and full placements: date, weather, calendar, sports scores, and message. Content density adapts to the available panel size—for example, Weather expands from current conditions to a seven-day forecast, while Date adds week context without showing a fast-changing clock.
+Five widgets are implemented for the standard small, wide, tall, large, and full placements: date, weather, calendar, sports, and message. Content density adapts to the available panel size—for example, Weather expands from current conditions to a seven-day forecast, while Date adds week context without showing a fast-changing clock.
 
 Every widget has a typed input, its own React component, a native canvas renderer, and a counterpart server fetcher. The fetcher registry composes those independent inputs into the dashboard response; replace an individual demo fetcher with a production weather, calendar, or scores adapter without changing unrelated widgets.
 
 ### Per-widget options
 
-Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Calendar stores `sources` (which Google accounts and calendars to show); Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can track different cities, several Calendar panels can each show a different set of calendars, and Message panels can each show a distinct note. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering. Widgets without options (Date, Sports scores) carry empty settings and read live data.
+Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Calendar stores `sources` (which Google accounts and calendars to show); Sports stores followed competitions, teams, and event types; Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can track different cities, one Sports panel can show F1 while another follows Arsenal, and several Calendar panels can show different calendar sets. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering.
 
 ### Weather
 
@@ -45,6 +45,22 @@ The Weather widget fetches live conditions and a seven-day forecast from the fre
 ### Calendar
 
 The Calendar widget shows upcoming events from one or more connected Google accounts (read-only). Accounts are connected in the studio via OAuth 2.0 and stored, with their refresh/access tokens, in the `google_accounts` SQLite table; each widget's `sources` reference those accounts by id and pick which of their calendars to show. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI` (see `.env.example`) to enable it. `GoogleCalendarService` handles the OAuth exchange, token refresh, calendar list, and event fetch over the REST API; a `CalendarService` fake keeps the suite offline, and the widget falls back to a demo agenda before any calendars are selected.
+
+### Sports
+
+Each Sports panel is scoped to one sport category and can independently follow entire competitions or individual teams within that sport. A Football panel cannot also contain Formula 1; users add another Sports panel for Motorsport. The initial catalog contains the Premier League, Formula 1, NFL, NBA, MLB, and NHL, grouped by sport. F1 can be narrowed to practice, qualifying, sprint, and race sessions; team competitions can be narrowed to any number of teams. All event times are stored as UTC instants and formatted in the dashboard timezone.
+
+ESPN's public site endpoints are the first adapter. They are unofficial and undocumented, so their schema and availability can change; review ESPN's terms before distributing or commercializing a deployment. Inked keeps ESPN identifiers out of saved dashboard settings and validates all responses at the adapter boundary.
+
+The server-side sports layer is deliberately provider-neutral:
+
+- `SportsProvider` in `apps/server/src/sports/types.ts` is the adapter contract.
+- `EspnSportsProvider` in `apps/server/src/sports/espn.ts` normalizes ESPN teams, matches, and racing sessions.
+- `createSportsProviders` in `apps/server/src/sports/providers.ts` is the provider registry.
+- `SPORTS_COMPETITIONS` in `apps/server/src/sports/catalog.ts` owns Inked's stable sport and competition ids. Each competition has an ordered `sources` array.
+- `DefaultSportsService` in `apps/server/src/sports/service.ts` selects sources, falls through to backups, coalesces concurrent requests, caches teams for 24 hours and events for 15 minutes, and temporarily cools down a failing source.
+
+To add a provider, implement `SportsProvider`, register the adapter in `createSportsProviders`, then add its provider id and competition reference to a competition's `sources`. Put it first to make it primary or later to make it a backup. The widget settings, studio, normalized event model, and renderers do not need to change.
 
 ### Saved compositions
 
@@ -91,6 +107,8 @@ The server tests assert the BMP signature and 800 × 480 dimensions, and separat
 - `GET /api/dashboard`
 - `GET /api/dashboards`
 - `GET /api/geocode?q=<place>`
+- `GET /api/sports/catalog`
+- `GET /api/sports/competitions/:id/teams`
 - `GET /api/google/status`
 - `GET /api/google/auth` · `GET /api/google/callback`
 - `GET /api/google/accounts` · `DELETE /api/google/accounts/:id`

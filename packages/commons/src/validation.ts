@@ -1,7 +1,10 @@
 import { LAYOUTS } from './layouts.js';
 import {
   DEFAULT_WIDGET_SETTINGS,
+  SPORTS_EVENT_TYPES,
   type DashboardConfig,
+  type SportsEventType,
+  type SportsFollow,
   type SlotAssignment,
   type WidgetId,
   type WidgetSettingsMap
@@ -47,6 +50,52 @@ function normalizeWidgetSettings(widgetId: WidgetId, raw: unknown): WidgetSettin
         })
         .filter((entry) => entry.accountId);
       return { sources };
+    }
+    case 'scores': {
+      const rawFollows = Array.isArray(source.follows)
+        ? source.follows
+        : DEFAULT_WIDGET_SETTINGS.scores.follows;
+      const parsedFollows = rawFollows
+        .slice(0, 12)
+        .map((entry): SportsFollow | null => {
+          const item = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {};
+          const sportId = typeof item.sportId === 'string' ? item.sportId.trim() : '';
+          const competitionId =
+            typeof item.competitionId === 'string' ? item.competitionId.trim() : '';
+          if (!sportId || !competitionId) return null;
+          const eventTypes = Array.isArray(item.eventTypes)
+            ? item.eventTypes.filter((type): type is SportsEventType =>
+                SPORTS_EVENT_TYPES.includes(type as SportsEventType)
+              )
+            : [];
+          if (item.kind === 'team' && typeof item.teamId === 'string' && item.teamId.trim()) {
+            return {
+              kind: 'team',
+              sportId,
+              competitionId,
+              teamId: item.teamId.trim(),
+              eventTypes: [...new Set(eventTypes)]
+            };
+          }
+          return {
+            kind: 'competition',
+            sportId,
+            competitionId,
+            eventTypes: [...new Set(eventTypes)]
+          };
+        })
+        .filter((follow): follow is SportsFollow => follow !== null);
+      const configuredSportId = typeof source.sportId === 'string' ? source.sportId.trim() : '';
+      const sportId =
+        configuredSportId || parsedFollows[0]?.sportId || DEFAULT_WIDGET_SETTINGS.scores.sportId;
+      const follows = parsedFollows.filter((follow) => follow.sportId === sportId);
+      const horizonDays = source.horizonDays;
+      return {
+        sportId,
+        follows,
+        horizonDays:
+          horizonDays === 7 || horizonDays === 30 || horizonDays === 90 ? horizonDays : 90
+      };
     }
     case 'message':
       return {

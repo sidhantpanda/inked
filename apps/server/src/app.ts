@@ -17,6 +17,7 @@ import {
   WIDGET_SIZE_DEFINITIONS,
   buildDashboardRefreshPlan,
   createDefaultDashboard,
+  isSportsPreviewPresetId,
   parseDashboardConfig,
   type DashboardConfig
 } from '@inked/commons';
@@ -27,7 +28,9 @@ import { renderFontTest } from './font-test.js';
 import { GoogleCalendarService, type CalendarService } from './google-calendar.js';
 import { MemoryGoogleAccountStore } from './google-store.js';
 import { PhotoPainterClient, type PhotoPainter } from './photo-painter.js';
+import { createDefaultSportsService, type SportsDataService } from './sports/index.js';
 import { OpenMeteoWeatherService, type WeatherService } from './widget-data/index.js';
+import { createSportsPreviewInput } from './widget-data/sports-preview.js';
 import {
   ensureMeteocons,
   renderDashboard,
@@ -49,6 +52,7 @@ export interface BuildAppOptions {
   photoPainter?: PhotoPainter;
   weatherService?: WeatherService;
   calendarService?: CalendarService;
+  sportsService?: SportsDataService;
   logger?: boolean;
 }
 
@@ -66,8 +70,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const store = options.store ?? new MemoryDashboardConfigStore();
   const weatherService = options.weatherService ?? new OpenMeteoWeatherService();
   const calendarService = options.calendarService ?? defaultCalendarService();
+  const sportsService = options.sportsService ?? createDefaultSportsService();
   const dataProvider =
-    options.dataProvider ?? new DemoDashboardDataProvider(weatherService, calendarService);
+    options.dataProvider ??
+    new DemoDashboardDataProvider(weatherService, calendarService, sportsService);
   const photoPainter = options.photoPainter ?? new PhotoPainterClient();
   const previewBmps = new Map<string, Buffer>();
   const pendingOAuthStates = new Set<string>();
@@ -123,6 +129,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   );
 
   app.get('/api/google/status', async () => ({ configured: calendarService.isConfigured() }));
+
+  app.get('/api/sports/catalog', async () => sportsService.getCatalog());
+
+  app.get<{ Params: { id: string } }>(
+    '/api/sports/competitions/:id/teams',
+    async (request, reply) => {
+      try {
+        return { teams: await sportsService.getTeams(request.params.id) };
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(502).send({ error: (error as Error).message });
+      }
+    }
+  );
 
   app.get('/api/google/auth', async (request, reply) => {
     if (!calendarService.isConfigured()) {
@@ -224,27 +244,37 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.get('/api/refresh-plan', async () => buildDashboardRefreshPlan(await store.get(), WIDGETS));
 
-  app.get<{ Params: { widgetId: string; variantId: string } }>(
-    '/api/widgets/:widgetId/:variantId/preview',
-    async (request, reply) => {
-      const widgetId = WIDGET_IDS.find((candidate) => candidate === request.params.widgetId);
-      const variant = WIDGET_LAYOUT_VARIANTS.find(
-        (candidate) => candidate.id === request.params.variantId
-      );
-      if (!widgetId || !variant) {
-        return reply.code(404).send({ error: 'Unknown widget preview.' });
-      }
-
-      const config = await store.get();
-      const image = renderWidgetPreview(
-        widgetId,
-        variant,
-        await dataProvider.getData(),
-        config.theme
-      );
-      return reply.header('cache-control', 'no-store').type('image/png').send(image);
+  app.get<{
+    Params: { widgetId: string; variantId: string };
+    Querystring: { preset?: string };
+  }>('/api/widgets/:widgetId/:variantId/preview', async (request, reply) => {
+    const widgetId = WIDGET_IDS.find((candidate) => candidate === request.params.widgetId);
+    const variant = WIDGET_LAYOUT_VARIANTS.find(
+      (candidate) => candidate.id === request.params.variantId
+    );
+    if (!widgetId || !variant) {
+      return reply.code(404).send({ error: 'Unknown widget preview.' });
     }
-  );
+    if (
+      widgetId === 'scores' &&
+      request.query.preset !== undefined &&
+      !isSportsPreviewPresetId(request.query.preset)
+    ) {
+      return reply.code(404).send({ error: 'Unknown sports preview preset.' });
+    }
+
+    const config = await store.get();
+    const data = await dataProvider.getData();
+    const previewData =
+      widgetId === 'scores' && isSportsPreviewPresetId(request.query.preset)
+        ? {
+            ...data,
+            scores: createSportsPreviewInput(request.query.preset, new Date(), data.scores.timezone)
+          }
+        : data;
+    const image = renderWidgetPreview(widgetId, variant, previewData, config.theme);
+    return reply.header('cache-control', 'no-store').type('image/png').send(image);
+  });
 
   app.get<{ Querystring: { format?: RenderFormat } }>(
     '/api/font-test/render',

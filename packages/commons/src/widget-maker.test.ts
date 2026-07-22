@@ -90,8 +90,8 @@ describe('widget maker', () => {
 
   it('uses the fastest assigned widget as the dashboard cadence', () => {
     const plan = buildDashboardRefreshPlan(createDefaultDashboard(), WIDGETS);
-    expect(plan.intervalMinutes).toBe(5);
-    expect(plan.label).toBe('Every 5 min');
+    expect(plan.intervalMinutes).toBe(15);
+    expect(plan.label).toBe('Every 15 min');
     expect(new Set(plan.widgets.map((widget) => widget.widgetId)).size).toBe(plan.widgets.length);
   });
 

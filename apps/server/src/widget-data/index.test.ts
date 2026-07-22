@@ -29,7 +29,7 @@ describe('widget data fetchers', () => {
     expect(weather).toMatchObject({ timezone: context.timezone, location: 'Amsterdam' });
     expect(weather.forecast.length).toBeGreaterThan(0);
     expect(calendar.events.length).toBeGreaterThan(0);
-    expect(scores.games.length).toBeGreaterThan(0);
+    expect(scores.events.length).toBeGreaterThan(0);
     expect(message.title).not.toBe('');
   });
 
@@ -38,7 +38,7 @@ describe('widget data fetchers', () => {
     expect(Object.keys(dashboard)).toEqual(WIDGET_IDS);
     expect(dashboard.weather.forecast).toHaveLength(7);
     expect(dashboard.calendar.events).toHaveLength(5);
-    expect(dashboard.scores.games).toHaveLength(4);
+    expect(dashboard.scores.events).toHaveLength(4);
   });
 
   it('honors per-slot settings so repeated widgets differ', async () => {

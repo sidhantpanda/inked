@@ -1,53 +1,79 @@
-import type { ScoresWidgetInput } from '@inked/commons';
+import type { ScoresWidgetInput, SportsEvent, SportsWidgetSettings } from '@inked/commons';
 
 import type { WidgetDataFetchContext } from './types.js';
 
 /** Replace this demo body with the production sports data integration. */
 export async function fetchScoresWidgetInput(
-  _context: WidgetDataFetchContext
+  context: WidgetDataFetchContext,
+  settings: SportsWidgetSettings
 ): Promise<ScoresWidgetInput> {
+  if (context.sports) return context.sports.getWidgetInput(settings, context.now, context.timezone);
+  const events: SportsEvent[] = [
+    {
+      id: 'nld-jpn',
+      type: 'match',
+      sport: 'Football',
+      competition: 'World Cup · Group D',
+      startsAt: context.now.toISOString(),
+      state: 'live',
+      source: 'Demo',
+      home: 'NED',
+      away: 'JPN',
+      homeScore: 2,
+      awayScore: 1
+    },
+    {
+      id: 'arg-mar',
+      type: 'match',
+      sport: 'Football',
+      competition: 'World Cup · Group B',
+      startsAt: new Date(context.now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      state: 'scheduled',
+      source: 'Demo',
+      home: 'ARG',
+      away: 'MAR'
+    },
+    {
+      id: 'f1-race',
+      type: 'race',
+      sport: 'Motorsport',
+      competition: 'Formula 1',
+      startsAt: new Date(context.now.getTime() + 26 * 60 * 60 * 1000).toISOString(),
+      state: 'scheduled',
+      source: 'Demo',
+      name: 'British GP',
+      session: 'Race',
+      venue: 'Silverstone'
+    },
+    {
+      id: 'bra-nor',
+      type: 'match',
+      sport: 'Football',
+      competition: 'World Cup · Group A',
+      startsAt: new Date(context.now.getTime() + 48 * 60 * 60 * 1000).toISOString(),
+      state: 'scheduled',
+      source: 'Demo',
+      home: 'BRA',
+      away: 'NOR'
+    },
+    {
+      id: 'esp-usa',
+      type: 'match',
+      sport: 'Football',
+      competition: 'World Cup · Group C',
+      startsAt: new Date(context.now.getTime() + 72 * 60 * 60 * 1000).toISOString(),
+      state: 'scheduled',
+      source: 'Demo',
+      home: 'ESP',
+      away: 'USA'
+    }
+  ];
+  const sportName: Record<string, string> = {
+    football: 'Football',
+    motorsport: 'Motorsport'
+  };
   return {
-    games: [
-      {
-        id: 'nld-jpn',
-        competition: 'World Cup · Group D',
-        home: 'NED',
-        away: 'JPN',
-        homeScore: 2,
-        awayScore: 1,
-        status: '67′',
-        live: true
-      },
-      {
-        id: 'arg-mar',
-        competition: 'World Cup · Group B',
-        home: 'ARG',
-        away: 'MAR',
-        homeScore: 0,
-        awayScore: 0,
-        status: '20:00',
-        live: false
-      },
-      {
-        id: 'usa-kor',
-        competition: 'World Cup · Group F',
-        home: 'USA',
-        away: 'KOR',
-        homeScore: 0,
-        awayScore: 0,
-        status: 'Tomorrow',
-        live: false
-      },
-      {
-        id: 'bra-nor',
-        competition: 'World Cup · Group A',
-        home: 'BRA',
-        away: 'NOR',
-        homeScore: 0,
-        awayScore: 0,
-        status: 'Thu',
-        live: false
-      }
-    ]
+    timezone: context.timezone,
+    events: events.filter((event) => event.sport === sportName[settings.sportId])
   };
 }
