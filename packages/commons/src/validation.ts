@@ -1,4 +1,5 @@
 import { LAYOUTS } from './layouts.js';
+import { isStockRange, normalizeStockSymbols } from './stocks.js';
 import {
   DEFAULT_WIDGET_SETTINGS,
   SPORTS_EVENT_TYPES,
@@ -95,6 +96,19 @@ function normalizeWidgetSettings(widgetId: WidgetId, raw: unknown): WidgetSettin
         follows,
         horizonDays:
           horizonDays === 7 || horizonDays === 30 || horizonDays === 90 ? horizonDays : 90
+      };
+    }
+    case 'stocks': {
+      const symbols = Array.isArray(source.symbols)
+        ? normalizeStockSymbols(source.symbols)
+        : [...DEFAULT_WIDGET_SETTINGS.stocks.symbols];
+      return {
+        symbols,
+        range: isStockRange(source.range) ? source.range : DEFAULT_WIDGET_SETTINGS.stocks.range,
+        showChart:
+          typeof source.showChart === 'boolean'
+            ? source.showChart
+            : DEFAULT_WIDGET_SETTINGS.stocks.showChart
       };
     }
     case 'message':

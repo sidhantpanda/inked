@@ -50,6 +50,12 @@ export const ScoreIcon = (props: IconProps) => (
     <path d="M8 4h8M9 4l1 4-4 3 2 7M15 4l-1 4 4 3-2 7M8 20h8" />
   </IconBase>
 );
+export const TrendIcon = (props: IconProps) => (
+  <IconBase {...props}>
+    <path d="M3 17l5-5 4 3 8-8" />
+    <path d="M15 7h5v5" />
+  </IconBase>
+);
 export const MessageIcon = (props: IconProps) => (
   <IconBase {...props}>
     <path d="M4 5h16v12H8l-4 4V5Z" />

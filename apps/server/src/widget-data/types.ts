@@ -2,6 +2,7 @@ import type { WidgetId, WidgetInputMap, WidgetSettingsMap } from '@inked/commons
 
 import type { CalendarService } from '../google-calendar.js';
 import type { SportsDataService } from '../sports/index.js';
+import type { StocksDataService } from '../stocks/index.js';
 import type { WeatherService } from './weather-service.js';
 
 export interface WidgetDataFetchContext {
@@ -13,6 +14,8 @@ export interface WidgetDataFetchContext {
   calendar?: CalendarService;
   /** Provider-neutral sports source; when absent the fetcher uses demo events. */
   sports?: SportsDataService;
+  /** Market-data source; when absent the fetcher uses deterministic demo quotes. */
+  stocks?: StocksDataService;
 }
 
 export type WidgetDataFetcher<K extends WidgetId> = (

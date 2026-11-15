@@ -4,7 +4,7 @@ export const DISPLAY_PADDING = 16;
 export const DISPLAY_GAP = 8;
 export const MIN_WIDGET_FONT_SIZE = 14;
 
-export const WIDGET_IDS = ['clock', 'weather', 'calendar', 'scores', 'message'] as const;
+export const WIDGET_IDS = ['clock', 'weather', 'calendar', 'scores', 'stocks', 'message'] as const;
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
 export const WIDGET_SIZES = ['small', 'wide', 'tall', 'large', 'full'] as const;
@@ -236,12 +236,37 @@ export interface SportsCatalogTeam {
   abbreviation: string;
 }
 
+/** Chart windows offered by the Stocks widget, shortest first. */
+export const STOCK_RANGES = ['1d', '5d', '1mo', '3mo', '6mo', '1y'] as const;
+export type StockRange = (typeof STOCK_RANGES)[number];
+
+/** Upper bound on tickers per Stocks panel; panels show as many as fit. */
+export const MAX_STOCK_SYMBOLS = 8;
+
+export interface StocksWidgetSettings {
+  /** Normalized tickers in display priority order, e.g. `AAPL`, `BRK-B`, `^GSPC`. */
+  symbols: string[];
+  /** Window plotted by the chart. Day change is always shown alongside. */
+  range: StockRange;
+  /** Draw price charts where the panel has room; off keeps compact quote rows. */
+  showChart: boolean;
+}
+
+/** A tradable instrument returned by the Stocks symbol search. */
+export interface StockSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  type: string;
+}
+
 /** The customization each widget accepts. Empty when a widget has no options. */
 export interface WidgetSettingsMap {
   clock: EmptyWidgetSettings;
   weather: WeatherWidgetSettings;
   calendar: CalendarWidgetSettings;
   scores: SportsWidgetSettings;
+  stocks: StocksWidgetSettings;
   message: MessageWidgetSettings;
 }
 
@@ -270,6 +295,11 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     ],
     horizonDays: 90
   },
+  stocks: {
+    symbols: ['SPY', 'AAPL', 'MSFT', 'NVDA'],
+    range: '1d',
+    showChart: true
+  },
   message: {
     eyebrow: 'Today’s note',
     title: 'Make room for the good stuff.',
@@ -283,6 +313,7 @@ export const WIDGET_HAS_SETTINGS: Record<WidgetId, boolean> = {
   weather: true,
   calendar: true,
   scores: true,
+  stocks: true,
   message: true
 };
 
@@ -401,6 +432,57 @@ export interface ScoresWidgetInput {
   timezone: string;
 }
 
+/** Regular-session state of the instrument's exchange when the quote was taken. */
+export type StockMarketState = 'pre' | 'open' | 'post' | 'closed';
+
+export interface StockChartPoint {
+  /** Epoch milliseconds. */
+  t: number;
+  value: number;
+}
+
+export interface StockChart {
+  range: StockRange;
+  /** Dashed baseline: the previous close for `1d`, otherwise the close before the window. */
+  reference: number;
+  /** Horizontal domain in epoch ms; for `1d` this is the full regular session. */
+  start: number;
+  end: number;
+  points: StockChartPoint[];
+}
+
+export interface StockQuote {
+  state: 'ok';
+  symbol: string;
+  name: string;
+  currency: string;
+  price: number;
+  previousClose: number;
+  /** Change versus the previous close. */
+  change: number;
+  changePercent: number;
+  dayHigh?: number;
+  dayLow?: number;
+  marketState: StockMarketState;
+  /** ISO time of the last trade. */
+  asOf: string;
+  chart: StockChart;
+  source: string;
+}
+
+export interface StockQuoteUnavailable {
+  state: 'unavailable';
+  symbol: string;
+}
+
+export type StockQuoteResult = StockQuote | StockQuoteUnavailable;
+
+export interface StocksWidgetInput {
+  quotes: StockQuoteResult[];
+  range: StockRange;
+  showChart: boolean;
+}
+
 export interface MessageWidgetInput {
   eyebrow: string;
   title: string;
@@ -413,6 +495,7 @@ export interface WidgetInputMap {
   weather: WeatherWidgetInput;
   calendar: CalendarWidgetInput;
   scores: ScoresWidgetInput;
+  stocks: StocksWidgetInput;
   message: MessageWidgetInput;
 }
 

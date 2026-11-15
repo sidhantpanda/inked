@@ -2288,3 +2288,140 @@ button {
     padding-right: 24px;
   }
 }
+
+.stocks-settings {
+  display: flex;
+  flex-direction: column;
+}
+.stocks-symbols {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stocks-symbols li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 6px 6px 11px;
+  border: 1px solid #e0e2dc;
+  border-radius: 8px;
+  background: #f7f8f3;
+}
+.stocks-symbols strong {
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 760;
+}
+.stocks-symbols small {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stocks-symbols button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #5d665f;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.stocks-symbols strong + button {
+  margin-left: auto;
+}
+.stocks-symbols button:hover:not(:disabled) {
+  background: #e8eae3;
+  color: var(--ink);
+}
+.stocks-symbols button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.settings-field .stocks-result-name {
+  color: var(--muted);
+  font-size: inherit;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.stocks-range-toggle button {
+  min-width: 0;
+  padding: 5px 9px;
+}
+
+.stocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stocks-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 0;
+  border-top: 1px solid var(--display-line);
+}
+.stocks-row:first-child {
+  border-top: 0;
+}
+.stocks-identity,
+.stocks-value {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stocks-identity {
+  flex: 1;
+}
+.stocks-identity small {
+  overflow: hidden;
+  color: var(--display-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stocks-value {
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+.stocks-value.is-up small,
+.stocks-sparkline.is-up path {
+  color: #1b7f3b;
+  stroke: #1b7f3b;
+}
+.stocks-value.is-down small,
+.stocks-sparkline.is-down path {
+  color: #c8372d;
+  stroke: #c8372d;
+}
+.stocks-sparkline {
+  flex: 1;
+  height: 30px;
+  min-width: 40px;
+}
+.stocks-sparkline path {
+  fill: none;
+  stroke: var(--display-muted);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.stocks-sparkline line {
+  stroke: var(--display-muted);
+  stroke-dasharray: 3 4;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.stocks-empty {
+  margin: 0;
+  color: var(--display-muted);
+}

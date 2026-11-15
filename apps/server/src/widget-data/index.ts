@@ -13,6 +13,7 @@ import { fetchCalendarWidgetInput } from './calendar.js';
 import { fetchDateWidgetInput } from './date.js';
 import { fetchMessageWidgetInput } from './message.js';
 import { fetchScoresWidgetInput } from './scores.js';
+import { fetchStocksWidgetInput } from './stocks.js';
 import type {
   WidgetDataFetcher,
   WidgetDataFetcherRegistry,
@@ -26,6 +27,7 @@ export const WIDGET_DATA_FETCHERS = {
   weather: fetchWeatherWidgetInput,
   calendar: fetchCalendarWidgetInput,
   scores: fetchScoresWidgetInput,
+  stocks: fetchStocksWidgetInput,
   message: fetchMessageWidgetInput
 } satisfies WidgetDataFetcherRegistry;
 

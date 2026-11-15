@@ -2,6 +2,7 @@ import type { DashboardConfig, DashboardData, WidgetInput } from '@inked/commons
 
 import type { CalendarService } from './google-calendar.js';
 import type { SportsDataService } from './sports/index.js';
+import type { StocksDataService } from './stocks/index.js';
 import { fetchDashboardData, resolveSlotInputs } from './widget-data/index.js';
 import { OpenMeteoWeatherService, type WeatherService } from './widget-data/weather-service.js';
 
@@ -18,7 +19,8 @@ export class DemoDashboardDataProvider implements DashboardDataProvider {
   constructor(
     private readonly weather: WeatherService = new OpenMeteoWeatherService(),
     private readonly calendar?: CalendarService,
-    private readonly sports?: SportsDataService
+    private readonly sports?: SportsDataService,
+    private readonly stocks?: StocksDataService
   ) {}
 
   async getData(now = new Date()): Promise<DashboardData> {
@@ -27,7 +29,8 @@ export class DemoDashboardDataProvider implements DashboardDataProvider {
       timezone: TIMEZONE,
       weather: this.weather,
       ...(this.calendar ? { calendar: this.calendar } : {}),
-      ...(this.sports ? { sports: this.sports } : {})
+      ...(this.sports ? { sports: this.sports } : {}),
+      ...(this.stocks ? { stocks: this.stocks } : {})
     });
   }
 
@@ -40,7 +43,8 @@ export class DemoDashboardDataProvider implements DashboardDataProvider {
       timezone: TIMEZONE,
       weather: this.weather,
       ...(this.calendar ? { calendar: this.calendar } : {}),
-      ...(this.sports ? { sports: this.sports } : {})
+      ...(this.sports ? { sports: this.sports } : {}),
+      ...(this.stocks ? { stocks: this.stocks } : {})
     });
   }
 }

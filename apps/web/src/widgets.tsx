@@ -2,11 +2,12 @@ import type { ComponentType, SVGProps } from 'react';
 
 import type { DashboardData, WidgetId, WidgetRenderProps, WidgetSize } from '@inked/commons';
 
-import { CalendarIcon, CloudIcon, MessageIcon, ScoreIcon } from './icons';
+import { CalendarIcon, CloudIcon, MessageIcon, ScoreIcon, TrendIcon } from './icons';
 import { CalendarWidget } from './widgets/CalendarWidget';
 import { DateWidget } from './widgets/DateWidget';
 import { MessageWidget } from './widgets/MessageWidget';
 import { ScoresWidget } from './widgets/ScoresWidget';
+import { StocksWidget } from './widgets/StocksWidget';
 import type { WidgetComponentRegistry } from './widgets/types';
 import { WeatherWidget } from './widgets/WeatherWidget';
 
@@ -15,6 +16,7 @@ const ICONS: Record<WidgetId, ComponentType<SVGProps<SVGSVGElement>>> = {
   weather: CloudIcon,
   calendar: CalendarIcon,
   scores: ScoreIcon,
+  stocks: TrendIcon,
   message: MessageIcon
 };
 
@@ -24,6 +26,7 @@ const WIDGET_COMPONENTS = {
   weather: WeatherWidget,
   calendar: CalendarWidget,
   scores: ScoresWidget,
+  stocks: StocksWidget,
   message: MessageWidget
 } satisfies WidgetComponentRegistry;
 

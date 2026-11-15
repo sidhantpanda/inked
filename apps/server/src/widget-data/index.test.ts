@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { WIDGET_IDS, createAssignment, createDefaultDashboard } from '@inked/commons';
 
 import { FakeCalendarService } from '../testing/fake-calendar.js';
+import { FakeStocksService } from '../testing/fake-stocks.js';
 import {
   WIDGET_DATA_FETCHERS,
   fetchDashboardData,
@@ -81,5 +82,19 @@ describe('widget data fetchers', () => {
     // With no sources selected it falls back to the demo agenda.
     const demo = await fetchWidgetInput('calendar', calendarContext, { sources: [] });
     expect(demo.events).toHaveLength(5);
+  });
+
+  it('quotes each tracked ticker and keeps unavailable ones visible', async () => {
+    const demo = await fetchWidgetInput('stocks', context);
+    expect(demo.quotes.map((quote) => quote.symbol)).toEqual(['SPY', 'AAPL', 'MSFT', 'NVDA']);
+    expect(demo.quotes.every((quote) => quote.state === 'ok')).toBe(true);
+
+    const live = await fetchWidgetInput(
+      'stocks',
+      { ...context, stocks: new FakeStocksService() },
+      { symbols: ['TSLA', 'ZZZZ'], range: '1mo', showChart: false }
+    );
+    expect(live).toMatchObject({ range: '1mo', showChart: false });
+    expect(live.quotes.map((quote) => quote.state)).toEqual(['ok', 'unavailable']);
   });
 });

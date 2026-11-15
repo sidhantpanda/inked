@@ -23,6 +23,7 @@ import { CalendarSettings } from './CalendarSettings';
 import { CheckIcon, ChevronIcon, DownloadIcon, PaintIcon } from './icons';
 import { WeatherSettings } from './WeatherSettings';
 import { SportsSettings } from './SportsSettings';
+import { StocksSettings } from './StocksSettings';
 import { WidgetIcon } from './widgets';
 
 interface DashboardSummary {
@@ -51,6 +52,9 @@ function WidgetSettingsEditor({
     return (
       <SportsSettings key={assignment.slotId} settings={assignment.settings} onChange={onChange} />
     );
+  }
+  if (assignment.widgetId === 'stocks') {
+    return <StocksSettings settings={assignment.settings} onChange={onChange} />;
   }
   if (assignment.widgetId === 'message') {
     return (

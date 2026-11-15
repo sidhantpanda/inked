@@ -7,7 +7,16 @@ import {
   DISPLAY_PADDING,
   DISPLAY_WIDTH,
   MIN_WIDGET_FONT_SIZE,
+  STOCK_MARKET_STATE_LABELS,
+  STOCK_RANGE_LABELS,
   formatCompactSportsSession,
+  formatStockChange,
+  formatStockPercent,
+  formatStockPrice,
+  planStocksLayout,
+  stockDirection,
+  stockDirectionGlyph,
+  stockRangeChange,
   formatSportsEventTiming,
   groupSportsEvents,
   getLayout,
@@ -20,6 +29,11 @@ import {
   type MessageWidgetInput,
   type ScoresWidgetInput,
   type SportsEventGroup,
+  type StockChart,
+  type StockQuoteResult,
+  type StockRange,
+  type StocksFocusChart,
+  type StocksWidgetInput,
   type WidgetId,
   type WidgetInput,
   type WidgetInputMap,
@@ -55,6 +69,9 @@ interface Palette {
   line: string;
   accent: string;
   accentInk: string;
+  /** Market direction colors; both map onto the e-ink panel's red and green inks. */
+  up: string;
+  down: string;
 }
 
 type WidgetFontFamily = 'sans' | 'serif';
@@ -92,6 +109,7 @@ export const WIDGET_RENDERERS = {
   weather: drawWeather,
   calendar: drawCalendar,
   scores: drawScores,
+  stocks: drawStocks,
   message: drawMessage
 } satisfies CanvasWidgetRendererRegistry;
 
@@ -182,7 +200,9 @@ function getPalette(theme: DashboardTheme): Palette {
       cardAlt: '#dce4d4',
       ink: '#18211c',
       muted: '#667068',
-      line: '#ccd0c9'
+      line: '#ccd0c9',
+      up: '#1b7f3b',
+      down: '#c8372d'
     },
     mist: {
       page: '#dce4e7',
@@ -190,7 +210,9 @@ function getPalette(theme: DashboardTheme): Palette {
       cardAlt: '#cbd9de',
       ink: '#142127',
       muted: '#607078',
-      line: '#becacd'
+      line: '#becacd',
+      up: '#1b7f3b',
+      down: '#c8372d'
     },
     night: {
       page: '#111714',
@@ -198,7 +220,9 @@ function getPalette(theme: DashboardTheme): Palette {
       cardAlt: '#26332c',
       ink: '#f4f5ec',
       muted: '#a9b5ab',
-      line: '#3a463f'
+      line: '#3a463f',
+      up: '#58c27d',
+      down: '#ff7b6b'
     }
   } as const;
   const base = backgrounds[theme.background];
@@ -657,6 +681,508 @@ function drawSportsSessionGroup(
       palette.muted
     );
   }
+}
+
+const STOCKS_HEADER_HEIGHT = 44;
+const STOCKS_BOTTOM_PADDING = 12;
+
+function drawStocks(
+  ctx: SKRSContext2D,
+  rect: Rect,
+  _size: WidgetSize,
+  input: StocksWidgetInput,
+  palette: Palette
+) {
+  label(ctx, rect, 'STOCKS', palette);
+  const plan = planStocksLayout(rect.width, rect.height, input.quotes.length, input.showChart);
+  const content: Rect = {
+    x: rect.x,
+    y: rect.y + STOCKS_HEADER_HEIGHT,
+    width: rect.width,
+    height: rect.height - STOCKS_HEADER_HEIGHT - STOCKS_BOTTOM_PADDING
+  };
+  const chartVisible =
+    plan.mode === 'grid' ? plan.chart : plan.mode !== 'empty' && plan.chart !== 'none';
+  drawStocksStatus(ctx, rect, input, chartVisible, palette);
+
+  if (plan.mode === 'empty') {
+    clippedText(
+      ctx,
+      'Add tickers to track',
+      content.x + 18,
+      content.y + 30,
+      content.width - 36,
+      16,
+      600,
+      palette.muted
+    );
+    return;
+  }
+  if (plan.mode === 'focus') {
+    drawStockCard(ctx, content, input.quotes[0]!, plan.chart, input.range, palette, 'focus');
+    return;
+  }
+  const visible = input.quotes.slice(0, plan.visible);
+  if (plan.mode === 'grid') {
+    const columnWidth = content.width / plan.columns;
+    const rowHeight = content.height / plan.rows;
+    visible.forEach((quote, index) => {
+      const row = Math.floor(index / plan.columns);
+      const column = index % plan.columns;
+      const cell: Rect = {
+        x: content.x + column * columnWidth,
+        y: content.y + row * rowHeight,
+        width: columnWidth,
+        height: rowHeight
+      };
+      if (row > 0 && column === 0) {
+        line(ctx, rect.x + 18, cell.y, rect.x + rect.width - 18, cell.y, palette.line);
+      }
+      if (column > 0) line(ctx, cell.x, cell.y + 4, cell.x, cell.y + cell.height - 4, palette.line);
+      const inset: Rect = row > 0 ? { ...cell, y: cell.y + 8, height: cell.height - 8 } : cell;
+      drawStockCard(ctx, inset, quote, plan.chart ? 'below' : 'none', input.range, palette, 'grid');
+    });
+    return;
+  }
+
+  const rowHeight = content.height / visible.length;
+  const narrow = content.width < 300;
+  visible.forEach((quote, index) => {
+    const row: Rect = { ...content, y: content.y + index * rowHeight, height: rowHeight };
+    if (index > 0) line(ctx, row.x + 18, row.y, row.x + row.width - 18, row.y, palette.line);
+    if (plan.chart === 'stacked') drawStackedStockRow(ctx, row, quote, palette);
+    else if (rowHeight >= 92) drawStockCard(ctx, row, quote, 'none', input.range, palette, 'grid');
+    else if (narrow) drawNarrowStockRow(ctx, row, quote, palette);
+    else drawWideStockRow(ctx, row, quote, plan.chart === 'inline', palette);
+  });
+}
+
+/** Header status, e.g. `1D · CLOSED`, drawn only when it clears the label. */
+function drawStocksStatus(
+  ctx: SKRSContext2D,
+  rect: Rect,
+  input: StocksWidgetInput,
+  chartVisible: boolean,
+  palette: Palette
+) {
+  const quote = input.quotes.find((candidate) => candidate.state === 'ok');
+  const state = quote ? STOCK_MARKET_STATE_LABELS[quote.marketState].toUpperCase() : '';
+  const range = chartVisible ? STOCK_RANGE_LABELS[input.range].short : '';
+  const options = { letterSpacing: 14 * WIDGET_TYPOGRAPHY.labelLetterSpacingEm };
+  setTextStyle(ctx, 14, 800, options);
+  const labelRight = rect.x + 18 + ctx.measureText('STOCKS').width + 12;
+  const right = rect.x + rect.width - 36;
+  setTextStyle(ctx, 14, 700, options);
+  for (const candidate of [[range, state].filter(Boolean).join(' · '), state, range]) {
+    if (candidate && right - ctx.measureText(candidate).width >= labelRight) {
+      text(ctx, candidate, right, rect.y + 31, 14, 700, palette.muted, 'right', options);
+      return;
+    }
+  }
+}
+
+function stockColor(change: number, palette: Palette) {
+  const direction = stockDirection(change);
+  return direction === 'up' ? palette.up : direction === 'down' ? palette.down : palette.muted;
+}
+
+function stockPercentLabel(change: number, percent: number) {
+  return `${stockDirectionGlyph(change)} ${formatStockPercent(percent)}`;
+}
+
+function textWidth(ctx: SKRSContext2D, value: string, size: number, weight: number) {
+  setTextStyle(ctx, Math.max(size, MIN_WIDGET_FONT_SIZE), weight);
+  return ctx.measureText(value).width;
+}
+
+function drawUnavailableStock(ctx: SKRSContext2D, row: Rect, symbol: string, palette: Palette) {
+  const baseline = row.y + Math.min(row.height / 2 + 6, 24);
+  const x = row.x + 18;
+  const right = row.x + row.width - 18;
+  const symbolWidth = Math.min(textWidth(ctx, symbol, 16, 800), (right - x) * 0.55);
+  clippedText(ctx, symbol, x, baseline, symbolWidth + 1, 16, 800, palette.ink);
+  text(ctx, 'No data', right, baseline, 14, 600, palette.muted, 'right');
+}
+
+/**
+ * A single quote with its hero price and, when planned, a chart beside or
+ * below it. Used for one-ticker panels and for each card in the full grid.
+ */
+function drawStockCard(
+  ctx: SKRSContext2D,
+  cell: Rect,
+  quote: StockQuoteResult,
+  chart: StocksFocusChart,
+  range: StockRange,
+  palette: Palette,
+  scale: 'focus' | 'grid'
+) {
+  if (quote.state !== 'ok') {
+    drawUnavailableStock(ctx, cell, quote.symbol, palette);
+    return;
+  }
+  const x = cell.x + 18;
+  const right = cell.x + cell.width - 18;
+  const minChartHeight = 36;
+
+  if (chart === 'side') {
+    const infoWidth = Math.min(220, Math.max(130, (right - x) * 0.42));
+    const info = stockInfoMetrics(infoWidth, cell.height, scale);
+    const top = cell.y + Math.max(0, Math.floor((cell.height - info.height) / 2));
+    drawStockInfo(ctx, x, top, infoWidth, info, quote, range, palette);
+    const chartX = x + infoWidth + 14;
+    drawStockChart(
+      ctx,
+      { x: chartX, y: cell.y + 6, width: right - chartX, height: cell.height - 10 },
+      quote.chart,
+      palette
+    );
+    return;
+  }
+
+  const width = right - x;
+  if (chart === 'none') {
+    // Center the quote in spare height so sparse panels don't hug the top.
+    const info = stockInfoMetrics(width, cell.height, scale);
+    const top = cell.y + Math.max(0, Math.floor((cell.height - info.height) / 2));
+    drawStockInfo(ctx, x, top, width, info, quote, range, palette);
+    return;
+  }
+
+  const info = stockInfoMetrics(width, cell.height - minChartHeight - 8, scale);
+  // Cap the chart's aspect ratio: a tall sliver exaggerates every move.
+  const available = cell.height - info.height - 8 - 4;
+  const chartHeight = Math.min(available, Math.max(72, width * 0.75));
+  const top = cell.y + Math.max(0, Math.floor((available - chartHeight) / 2));
+  const bottom = drawStockInfo(ctx, x, top, width, info, quote, range, palette);
+  drawStockChart(ctx, { x, y: bottom + 8, width, height: chartHeight }, quote.chart, palette);
+}
+
+interface StockInfoMetrics {
+  compact: boolean;
+  priceSize: number;
+  showMeta: boolean;
+  height: number;
+}
+
+/** Sizes the quote text block for a height budget before anything is drawn. */
+function stockInfoMetrics(
+  width: number,
+  budget: number,
+  scale: 'focus' | 'grid'
+): StockInfoMetrics {
+  const maxPrice = scale === 'focus' ? 48 : 34;
+  const priceSize = Math.min(maxPrice, Math.max(26, Math.floor(budget - 70)));
+  const heroHeight = 16 + priceSize + 4 + 24;
+  if (budget < heroHeight + 4 || width < 120) {
+    return { compact: true, priceSize, showMeta: false, height: 44 };
+  }
+  const showMeta = budget >= heroHeight + 26;
+  return { compact: false, priceSize, showMeta, height: heroHeight + (showMeta ? 22 : 0) + 6 };
+}
+
+/** Draws the quote text block within the budget and returns its bottom edge. */
+function drawStockInfo(
+  ctx: SKRSContext2D,
+  x: number,
+  y: number,
+  width: number,
+  { compact, priceSize, showMeta }: StockInfoMetrics,
+  quote: Extract<StockQuoteResult, { state: 'ok' }>,
+  range: StockRange,
+  palette: Palette
+): number {
+  const color = stockColor(quote.change, palette);
+  const right = x + width;
+
+  if (compact) {
+    // Compact two-line quote: symbol and price, then name and day change.
+    const percent = stockPercentLabel(quote.change, quote.changePercent);
+    const priceWidth = textWidth(ctx, formatStockPrice(quote.price), 16, 800);
+    clippedText(
+      ctx,
+      quote.symbol,
+      x,
+      y + 18,
+      Math.max(30, width - priceWidth - 10),
+      16,
+      800,
+      palette.ink
+    );
+    text(ctx, formatStockPrice(quote.price), right, y + 18, 16, 800, palette.ink, 'right');
+    const percentWidth = textWidth(ctx, percent, 14, 800);
+    if (width - percentWidth - 10 > 40) {
+      clippedText(ctx, quote.name, x, y + 38, width - percentWidth - 10, 14, 600, palette.muted);
+    }
+    text(ctx, percent, right, y + 38, 14, 800, color, 'right');
+    return y + 44;
+  }
+
+  const symbolWidth = textWidth(ctx, quote.symbol, 16, 800);
+  text(ctx, quote.symbol, x, y + 16, 16, 800, palette.ink);
+  if (width - symbolWidth - 10 > 40) {
+    clippedText(
+      ctx,
+      quote.name,
+      x + symbolWidth + 10,
+      y + 16,
+      width - symbolWidth - 10,
+      14,
+      600,
+      palette.muted
+    );
+  }
+  const priceBaseline = y + 16 + priceSize + 4;
+  fittedText(
+    ctx,
+    formatStockPrice(quote.price),
+    x,
+    priceBaseline,
+    width,
+    priceSize,
+    700,
+    palette.ink,
+    {
+      letterSpacing: priceSize * -0.03
+    }
+  );
+  const changeBaseline = priceBaseline + 24;
+  const full = `${stockDirectionGlyph(quote.change)} ${formatStockChange(quote.change)}  ${formatStockPercent(quote.changePercent)}`;
+  const changeLabel =
+    textWidth(ctx, full, 16, 800) <= width
+      ? full
+      : stockPercentLabel(quote.change, quote.changePercent);
+  clippedText(ctx, changeLabel, x, changeBaseline, width, 16, 800, color);
+  if (!showMeta) return changeBaseline + 6;
+
+  const metaBaseline = changeBaseline + 22;
+  clippedText(ctx, stockMeta(quote, range), x, metaBaseline, width, 14, 600, palette.muted);
+  return metaBaseline + 6;
+}
+
+function stockMeta(quote: Extract<StockQuoteResult, { state: 'ok' }>, range: StockRange) {
+  if (range !== '1d') {
+    const performance = stockRangeChange(quote.chart);
+    return `${STOCK_RANGE_LABELS[range].short} ${stockPercentLabel(performance.change, performance.changePercent)}`;
+  }
+  if (quote.dayLow !== undefined && quote.dayHigh !== undefined) {
+    return `Day ${formatStockPrice(quote.dayLow)} – ${formatStockPrice(quote.dayHigh)}`;
+  }
+  return `Prev close ${formatStockPrice(quote.previousClose)}`;
+}
+
+/** Narrow rail row: symbol and day change, price, then a full-width chart. */
+function drawStackedStockRow(
+  ctx: SKRSContext2D,
+  row: Rect,
+  quote: StockQuoteResult,
+  palette: Palette
+) {
+  if (quote.state !== 'ok') {
+    drawUnavailableStock(ctx, row, quote.symbol, palette);
+    return;
+  }
+  const x = row.x + 18;
+  const right = row.x + row.width - 18;
+  const color = stockColor(quote.change, palette);
+  const percent = stockPercentLabel(quote.change, quote.changePercent);
+  const percentWidth = textWidth(ctx, percent, 14, 800);
+  clippedText(ctx, quote.symbol, x, row.y + 21, right - x - percentWidth - 8, 16, 800, palette.ink);
+  text(ctx, percent, right, row.y + 21, 14, 800, color, 'right');
+  text(ctx, formatStockPrice(quote.price), x, row.y + 42, 18, 700, palette.ink);
+  const change = formatStockChange(quote.change);
+  if (
+    textWidth(ctx, formatStockPrice(quote.price), 18, 700) + textWidth(ctx, change, 14, 600) + 12 <
+    right - x
+  ) {
+    text(ctx, change, right, row.y + 42, 14, 600, color, 'right');
+  }
+  const chartTop = row.y + 50;
+  drawStockChart(
+    ctx,
+    { x, y: chartTop, width: right - x, height: row.y + row.height - 8 - chartTop },
+    quote.chart,
+    palette
+  );
+}
+
+/** Narrow quote row: two lines when tall enough, otherwise a single dense line. */
+function drawNarrowStockRow(
+  ctx: SKRSContext2D,
+  row: Rect,
+  quote: StockQuoteResult,
+  palette: Palette
+) {
+  if (quote.state !== 'ok') {
+    drawUnavailableStock(ctx, row, quote.symbol, palette);
+    return;
+  }
+  const x = row.x + 18;
+  const right = row.x + row.width - 18;
+  const color = stockColor(quote.change, palette);
+  const price = formatStockPrice(quote.price);
+  if (row.height < 44) {
+    const baseline = row.y + row.height / 2 + 6;
+    const priceWidth = textWidth(ctx, price, 15, 700);
+    const glyph = stockDirectionGlyph(quote.change);
+    const glyphWidth = textWidth(ctx, glyph, 14, 800);
+    text(ctx, price, right, baseline, 15, 700, palette.ink, 'right');
+    text(ctx, glyph, right - priceWidth - 6, baseline, 14, 800, color, 'right');
+    clippedText(
+      ctx,
+      quote.symbol,
+      x,
+      baseline,
+      right - x - priceWidth - glyphWidth - 16,
+      15,
+      800,
+      palette.ink
+    );
+    return;
+  }
+  const top = row.y + (row.height - 38) / 2;
+  const priceWidth = textWidth(ctx, price, 16, 700);
+  clippedText(ctx, quote.symbol, x, top + 15, right - x - priceWidth - 10, 16, 800, palette.ink);
+  text(ctx, price, right, top + 15, 16, 700, palette.ink, 'right');
+  const percent = stockPercentLabel(quote.change, quote.changePercent);
+  const percentWidth = textWidth(ctx, percent, 14, 800);
+  if (right - x - percentWidth - 10 > 30) {
+    clippedText(
+      ctx,
+      quote.name,
+      x,
+      top + 34,
+      right - x - percentWidth - 10,
+      14,
+      600,
+      palette.muted
+    );
+  }
+  text(ctx, percent, right, top + 34, 14, 800, color, 'right');
+}
+
+/** Wide quote row: identity column, optional inline sparkline, and value column. */
+function drawWideStockRow(
+  ctx: SKRSContext2D,
+  row: Rect,
+  quote: StockQuoteResult,
+  inlineChart: boolean,
+  palette: Palette
+) {
+  if (quote.state !== 'ok') {
+    drawUnavailableStock(ctx, row, quote.symbol, palette);
+    return;
+  }
+  const x = row.x + 18;
+  const right = row.x + row.width - 18;
+  const innerWidth = right - x;
+  const color = stockColor(quote.change, palette);
+  const price = formatStockPrice(quote.price);
+  const percent = stockPercentLabel(quote.change, quote.changePercent);
+  const infoWidth = Math.min(150, Math.max(96, innerWidth * 0.28));
+  const valueWidth = Math.min(170, Math.max(118, innerWidth * 0.32));
+  const valueLeft = right - valueWidth;
+  const identityRight = inlineChart ? x + infoWidth : valueLeft - 12;
+
+  if (row.height >= 44) {
+    const top = row.y + (row.height - 38) / 2;
+    clippedText(ctx, quote.symbol, x, top + 15, identityRight - x, 16, 800, palette.ink);
+    clippedText(ctx, quote.name, x, top + 34, identityRight - x, 14, 600, palette.muted);
+    text(ctx, price, right, top + 15, 16, 700, palette.ink, 'right');
+    const full = `${stockDirectionGlyph(quote.change)} ${formatStockChange(quote.change)}  ${formatStockPercent(quote.changePercent)}`;
+    const change = textWidth(ctx, full, 14, 800) <= valueWidth ? full : percent;
+    text(ctx, change, right, top + 34, 14, 800, color, 'right');
+  } else {
+    const baseline = row.y + row.height / 2 + 6;
+    const percentWidth = textWidth(ctx, percent, 14, 800);
+    text(ctx, percent, right, baseline, 14, 800, color, 'right');
+    const priceRight = right - percentWidth - 12;
+    text(ctx, price, priceRight, baseline, 16, 700, palette.ink, 'right');
+    // Long prices can extend past the value column, so clip identity to the price itself.
+    const identityLimit = Math.min(identityRight, priceRight - textWidth(ctx, price, 16, 700) - 12);
+    const symbolWidth = Math.min(textWidth(ctx, quote.symbol, 16, 800), identityLimit - x);
+    clippedText(ctx, quote.symbol, x, baseline, identityLimit - x, 16, 800, palette.ink);
+    if (!inlineChart && identityLimit - x - symbolWidth - 10 > 40) {
+      clippedText(
+        ctx,
+        quote.name,
+        x + symbolWidth + 10,
+        baseline,
+        identityLimit - x - symbolWidth - 10,
+        14,
+        600,
+        palette.muted
+      );
+    }
+  }
+
+  if (inlineChart) {
+    const chartX = x + infoWidth + 10;
+    drawStockChart(
+      ctx,
+      { x: chartX, y: row.y + 6, width: valueLeft - 10 - chartX, height: row.height - 12 },
+      quote.chart,
+      palette
+    );
+  }
+}
+
+/**
+ * Price line over the chart's time domain with a dashed reference baseline
+ * (previous close for 1D). Colored by performance over the charted window.
+ */
+function drawStockChart(ctx: SKRSContext2D, area: Rect, chart: StockChart, palette: Palette) {
+  const points = chart.points;
+  if (points.length < 2 || area.width < 24 || area.height < 14) return;
+  const values = points.map((point) => point.value);
+  let low = Math.min(...values, chart.reference);
+  let high = Math.max(...values, chart.reference);
+  if (high - low < high * 0.002) {
+    low -= high * 0.001;
+    high += high * 0.001;
+  }
+  const padding = (high - low) * 0.08;
+  low -= padding;
+  high += padding;
+  const span = Math.max(1, chart.end - chart.start);
+  const toX = (t: number) =>
+    area.x + Math.min(1, Math.max(0, (t - chart.start) / span)) * area.width;
+  const toY = (value: number) => area.y + (1 - (value - low) / (high - low)) * area.height;
+  const performance = stockRangeChange(chart);
+  const color = stockColor(performance.change, palette);
+
+  ctx.save();
+  ctx.strokeStyle = palette.muted;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  const baseline = Math.round(toY(chart.reference)) + 0.5;
+  ctx.moveTo(area.x, baseline);
+  ctx.lineTo(area.x + area.width, baseline);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = area.height >= 60 ? 2.5 : 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const px = toX(point.t);
+    const py = toY(point.value);
+    if (index === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  if (area.height >= 36) {
+    const last = points.at(-1)!;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(toX(last.t), toY(last.value), 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawMessage(

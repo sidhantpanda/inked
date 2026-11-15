@@ -24,6 +24,7 @@ import { MemoryDashboardConfigStore } from './config-store.js';
 import { DemoDashboardDataProvider } from './data.js';
 import { FakeCalendarService } from './testing/fake-calendar.js';
 import { FakeSportsService } from './testing/fake-sports.js';
+import { FakeStocksService } from './testing/fake-stocks.js';
 import { FakeWeatherService } from './testing/fake-weather.js';
 
 interface CatalogResponse {
@@ -45,6 +46,7 @@ function testApp() {
     weatherService: weather,
     calendarService: calendar,
     sportsService: sports,
+    stocksService: new FakeStocksService(),
     photoPainter: {
       endpoint: 'https://example.test/paint',
       paint: vi.fn(async () => ({ message: 'accepted' }))
@@ -59,7 +61,7 @@ describe('Inked API', () => {
     const catalog = response.json<CatalogResponse>();
     expect(response.statusCode).toBe(200);
     expect(catalog.layouts).toHaveLength(10);
-    expect(catalog.widgets).toHaveLength(5);
+    expect(catalog.widgets).toHaveLength(6);
     expect(Object.keys(catalog.widgetSizes)).toEqual(['small', 'wide', 'tall', 'large', 'full']);
     expect(catalog.widgetPreviewDimensions).toEqual(WIDGET_PREVIEW_DIMENSIONS);
     expect(catalog.widgetLayoutVariants).toEqual(WIDGET_LAYOUT_VARIANTS);
@@ -199,6 +201,19 @@ describe('Inked API', () => {
 
     const empty = await app.inject({ method: 'GET', url: '/api/geocode?q=' });
     expect(empty.statusCode).toBe(200);
+    expect(empty.json<{ results: unknown[] }>().results).toHaveLength(0);
+    await app.close();
+  });
+
+  it('searches stock symbols for the Stocks picker', async () => {
+    const app = await testApp();
+    const response = await app.inject({ method: 'GET', url: '/api/stocks/search?q=aapl' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ results: { symbol: string }[] }>().results[0]).toMatchObject({
+      symbol: 'AAPL'
+    });
+
+    const empty = await app.inject({ method: 'GET', url: '/api/stocks/search?q=' });
     expect(empty.json<{ results: unknown[] }>().results).toHaveLength(0);
     await app.close();
   });

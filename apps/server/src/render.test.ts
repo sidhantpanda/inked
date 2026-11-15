@@ -17,6 +17,7 @@ import {
   renderDashboardAssets,
   renderWidgetPreview
 } from './render.js';
+import { FakeStocksService } from './testing/fake-stocks.js';
 import { FakeWeatherService } from './testing/fake-weather.js';
 
 describe('dashboard layout rendering', () => {
@@ -117,5 +118,30 @@ describe('dashboard layout rendering', () => {
 
     expect(differingPixels).toBeLessThan(20);
     expect(maxChannelDelta).toBeLessThanOrEqual(8);
+  });
+
+  it('renders Stocks edge cases in every layout geometry with and without charts', async () => {
+    const data = await dataProvider.getData();
+    const stocks = new FakeStocksService();
+    const theme = createDefaultDashboard().theme;
+    for (const symbols of [
+      [],
+      ['ZZZZ'],
+      ['AAPL'],
+      ['AAPL', 'ZZZZ', 'MSFT', 'NVDA', 'SPY', 'TSLA']
+    ]) {
+      const quotes = await stocks.getQuotes(symbols, '1d');
+      for (const showChart of [true, false]) {
+        for (const variant of WIDGET_LAYOUT_VARIANTS) {
+          const png = renderWidgetPreview(
+            'stocks',
+            variant,
+            { ...data, stocks: { quotes, range: '1d', showChart } },
+            theme
+          );
+          expect(png.readUInt32BE(16)).toBe(variant.width);
+        }
+      }
+    }
   });
 });

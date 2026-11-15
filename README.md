@@ -30,13 +30,13 @@ The catalog includes ten fixed, code-defined compositions, ranging from three to
 - **Bento eight** — eight mixed-scale positions.
 - **Data matrix** — eight consistent high-density tiles.
 
-Five widgets are implemented for the standard small, wide, tall, large, and full placements: date, weather, calendar, sports, and message. Content density adapts to the available panel size—for example, Weather expands from current conditions to a seven-day forecast, while Date adds week context without showing a fast-changing clock.
+Six widgets are implemented for the standard small, wide, tall, large, and full placements: date, weather, calendar, sports, stocks, and message. Content density adapts to the available panel size—for example, Weather expands from current conditions to a seven-day forecast, while Date adds week context without showing a fast-changing clock.
 
 Every widget has a typed input, its own React component, a native canvas renderer, and a counterpart server fetcher. The fetcher registry composes those independent inputs into the dashboard response; replace an individual demo fetcher with a production weather, calendar, or scores adapter without changing unrelated widgets.
 
 ### Per-widget options
 
-Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Calendar stores `sources` (which Google accounts and calendars to show); Sports stores followed competitions, teams, and event types; Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can track different cities, one Sports panel can show F1 while another follows Arsenal, and several Calendar panels can show different calendar sets. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering.
+Each placed widget carries its own settings, so the same widget can appear more than once in a layout with different content. Weather stores a resolved place (`location` name, `latitude`, `longitude`, `timezone`) plus a °C/°F `units` choice; Calendar stores `sources` (which Google accounts and calendars to show); Sports stores followed competitions, teams, and event types; Stocks stores an ordered list of `symbols`, a chart `range`, and `showChart`; Message takes an `eyebrow`, `title`, and `detail`. Two Weather panels can track different cities, one Sports panel can show F1 while another follows Arsenal, and several Calendar panels can show different calendar sets. Settings are typed per widget in `WidgetSettingsMap`, default through `DEFAULT_WIDGET_SETTINGS`, and are resolved independently for every slot before rendering.
 
 ### Weather
 
@@ -61,6 +61,20 @@ The server-side sports layer is deliberately provider-neutral:
 - `DefaultSportsService` in `apps/server/src/sports/service.ts` selects sources, falls through to backups, coalesces concurrent requests, caches teams for 24 hours and events for 15 minutes, and temporarily cools down a failing source.
 
 To add a provider, implement `SportsProvider`, register the adapter in `createSportsProviders`, then add its provider id and competition reference to a competition's `sources`. Put it first to make it primary or later to make it a backup. The widget settings, studio, normalized event model, and renderers do not need to change.
+
+### Stocks
+
+Each Stocks panel tracks up to eight US tickers—stocks, ETFs, and indexes such as `^GSPC`—showing price and day change with an optional chart over 1D, 5D, 1M, 3M, 6M, or 1Y. The 1D chart spans the full 09:30–16:00 New York session with the previous close as a dashed baseline; longer windows use the close before the window. Gains and losses use green and red, which map onto the e-ink panel's inks, and are always paired with ▲/▼ glyphs.
+
+The layout follows the slot's real pixel bounds, not just its size name, so the same widget adapts across all layout geometries and orientations. `planStocksLayout` in `packages/commons/src/stocks.ts` picks one of three modes:
+
+- **Focus**: a single ticker shows a hero price with its chart beside it in landscape slots or below it in portrait ones.
+- **List**: several tickers become rows. Wide rows carry inline sparklines; narrow rails stack a chart under each ticker; tight slots use dense one-line quotes.
+- **Grid**: full-width panels lay tickers out as cards.
+
+Turning charts off, or running out of room for them, never drops tickers. A chart layout is chosen only when it fits at least as many tickers as the chart-free layout, so smaller panels fall back to compact quote rows. Ticker order sets priority when a panel cannot fit them all.
+
+Quotes come from free, keyless public endpoints behind the provider-neutral `StocksProvider` contract in `apps/server/src/stocks/`. `YahooFinanceStocksProvider` is primary and also powers the studio's symbol search (filtered to US exchanges). `NasdaqStocksProvider` is the US-only backup. Both are unofficial and undocumented, so their schemas and availability can change; review their terms before distributing a deployment. Data is typically delayed about 15 minutes, which matches the widget's refresh interval. `DefaultStocksService` quotes each ticker independently, so an unknown symbol shows "No data" without blanking the panel. It caches quotes for 5 minutes, coalesces concurrent requests, and cools down a failing provider without penalizing it for unknown tickers. To add a source, implement `StocksProvider` and register it in `createStocksProviders`. A deterministic `FakeStocksService` keeps the suite offline.
 
 ### Saved compositions
 
@@ -108,6 +122,7 @@ The server tests assert the BMP signature and 800 × 480 dimensions, and separat
 - `GET /api/dashboards`
 - `GET /api/geocode?q=<place>`
 - `GET /api/sports/catalog`
+- `GET /api/stocks/search?q=<name or ticker>`
 - `GET /api/sports/competitions/:id/teams`
 - `GET /api/google/status`
 - `GET /api/google/auth` · `GET /api/google/callback`

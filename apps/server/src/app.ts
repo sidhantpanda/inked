@@ -29,6 +29,7 @@ import { GoogleCalendarService, type CalendarService } from './google-calendar.j
 import { MemoryGoogleAccountStore } from './google-store.js';
 import { PhotoPainterClient, type PhotoPainter } from './photo-painter.js';
 import { createDefaultSportsService, type SportsDataService } from './sports/index.js';
+import { createDefaultStocksService, type StocksDataService } from './stocks/index.js';
 import { OpenMeteoWeatherService, type WeatherService } from './widget-data/index.js';
 import { createSportsPreviewInput } from './widget-data/sports-preview.js';
 import {
@@ -53,6 +54,7 @@ export interface BuildAppOptions {
   weatherService?: WeatherService;
   calendarService?: CalendarService;
   sportsService?: SportsDataService;
+  stocksService?: StocksDataService;
   logger?: boolean;
 }
 
@@ -71,9 +73,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const weatherService = options.weatherService ?? new OpenMeteoWeatherService();
   const calendarService = options.calendarService ?? defaultCalendarService();
   const sportsService = options.sportsService ?? createDefaultSportsService();
+  const stocksService = options.stocksService ?? createDefaultStocksService();
   const dataProvider =
     options.dataProvider ??
-    new DemoDashboardDataProvider(weatherService, calendarService, sportsService);
+    new DemoDashboardDataProvider(weatherService, calendarService, sportsService, stocksService);
   const photoPainter = options.photoPainter ?? new PhotoPainterClient();
   const previewBmps = new Map<string, Buffer>();
   const pendingOAuthStates = new Set<string>();
@@ -124,6 +127,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       } catch (error) {
         request.log.error(error);
         return reply.code(502).send({ error: 'Could not reach the geocoding service.' });
+      }
+    }
+  );
+
+  app.get<{ Querystring: { q?: string; count?: string } }>(
+    '/api/stocks/search',
+    async (request, reply) => {
+      const query = (request.query.q ?? '').trim().slice(0, 64);
+      if (!query) return { results: [] };
+      const count = Math.min(Math.max(Number(request.query.count) || 8, 1), 12);
+      try {
+        return { results: await stocksService.search(query, count) };
+      } catch (error) {
+        request.log.error(error);
+        return reply.code(502).send({ error: 'Could not reach the stock search service.' });
       }
     }
   );
