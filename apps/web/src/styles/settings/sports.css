@@ -1,0 +1,75 @@
+.sports-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  color: var(--ink);
+  font-size: 12px;
+}
+.sports-check--all {
+  margin: 2px 0 7px;
+  font-weight: 680;
+}
+.sports-subscription > strong,
+.sports-choice-label {
+  display: block;
+  color: #69726c;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sports-subscription > strong {
+  margin: 4px 0 5px;
+}
+.sports-choice-label {
+  margin: 9px 0 4px;
+}
+.sports-event-types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 10px;
+}
+.sports-team-list {
+  max-height: 188px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  padding: 5px 8px;
+  border: 1px solid #e0e2dc;
+  border-radius: 8px;
+  background: #fff;
+}
+.sports-horizon {
+  margin-top: 10px;
+}
+.sports-following {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 13px;
+}
+.sports-following > strong {
+  flex-basis: 100%;
+  color: #69726c;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sports-following button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #d7d9d3;
+  border-radius: 999px;
+  background: #f2f3ee;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 11px;
+}
+.sports-following button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

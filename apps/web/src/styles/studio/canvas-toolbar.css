@@ -1,0 +1,95 @@
+.studio {
+  min-width: 0;
+  padding: 29px clamp(24px, 3.3vw, 54px);
+  background: #f2f2ed;
+}
+.studio-header {
+  max-width: 900px;
+  margin: 0 auto 14px;
+}
+.canvas-toolbar {
+  max-width: 900px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.canvas-theme {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafaf6;
+}
+.canvas-theme .control-label {
+  font-size: 9px;
+}
+.canvas-theme-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 2px;
+}
+.studio-header h1 {
+  margin: 6px 0 0;
+  font-family: 'Inked Serif', serif;
+  font-size: 31px;
+  line-height: 1.02;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.studio-sub {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+.canvas-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.canvas-meta > span {
+  padding: 6px 8px;
+  color: #6d756f;
+  border: 1px solid #d2d5cf;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+}
+.canvas-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.canvas-live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9aa19c;
+}
+.canvas-live--ready {
+  color: #3f7d54;
+  border-color: #bcd6c3;
+}
+.canvas-live--ready::before {
+  background: #52a56b;
+}
+.canvas-live--rendering::before {
+  background: #efb03b;
+  animation: pulse 1s infinite;
+}
+.canvas-live--error {
+  color: #9e3e32;
+  border-color: #e0b3ab;
+}
+.canvas-live--error::before {
+  background: #d45e4f;
+}

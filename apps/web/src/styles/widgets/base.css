@@ -1,0 +1,33 @@
+.widget {
+  --widget-min-font-size: 14px;
+  container-type: size;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 10px clamp(10px, 5.2%, 22px);
+  border: 1px solid var(--display-line);
+  border-radius: 9px;
+  background: var(--display-card);
+  color: var(--display-ink);
+}
+.widget--weather {
+  background: var(--display-card-alt);
+}
+.widget-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--display-muted);
+  font-size: var(--widget-min-font-size);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.widget-label i {
+  width: clamp(4px, 0.55vw, 7px);
+  height: clamp(4px, 0.55vw, 7px);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--display-accent);
+}

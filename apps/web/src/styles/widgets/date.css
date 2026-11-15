@@ -1,0 +1,65 @@
+.date-main {
+  display: flex;
+  align-items: center;
+  gap: 4%;
+  margin-top: 3%;
+}
+.date-number {
+  font-family: 'Inked Serif', serif;
+  font-size: clamp(42px, 6.2vw, 82px);
+  line-height: 0.88;
+  letter-spacing: -0.07em;
+}
+.date-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.date-copy strong {
+  font-size: clamp(var(--widget-min-font-size), 1.4vw, 18px);
+}
+.date-copy span {
+  color: var(--display-muted);
+  font-size: var(--widget-min-font-size);
+}
+.week-strip {
+  position: absolute;
+  left: 5.2%;
+  right: 5.2%;
+  bottom: 8%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1%;
+}
+.week-strip > div {
+  min-width: 0;
+  padding: 5% 1%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-radius: 5px;
+  color: var(--display-muted);
+}
+.week-strip span {
+  font-size: var(--widget-min-font-size);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.week-strip strong {
+  color: var(--display-ink);
+  font-size: var(--widget-min-font-size);
+}
+.week-strip .is-current {
+  background: var(--display-accent);
+  color: var(--display-accent-ink);
+}
+.week-strip .is-current strong {
+  color: var(--display-accent-ink);
+}
+.accent-rule {
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: var(--display-accent);
+}

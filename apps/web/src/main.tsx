@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { App } from './App';
-import { FontTestPage } from './FontTestPage';
-import { WidgetsPage } from './WidgetsPage';
+import { FontTestPage } from './font-test/FontTestPage';
+import { WidgetsPage } from './gallery/WidgetsPage';
+import { StudioPage } from './studio/StudioPage';
 import './styles.css';
 
 const path = window.location.pathname;
@@ -12,7 +12,7 @@ const page = path.startsWith('/font-test') ? (
 ) : path.startsWith('/widgets') ? (
   <WidgetsPage />
 ) : (
-  <App />
+  <StudioPage />
 );
 
 document.title = path.startsWith('/font-test')

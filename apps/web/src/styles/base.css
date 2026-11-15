@@ -1,0 +1,42 @@
+@font-face {
+  font-family: 'Inked Sans';
+  src: url('@inked/commons/fonts/inter/Inter.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inked Serif';
+  src: url('@inked/commons/fonts/libre-baskerville/LibreBaskerville.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  font-family: 'Inked Sans', sans-serif;
+  color: #1a211d;
+  background: #f2f2ed;
+  font-synthesis: none;
+  --ink: #1a211d;
+  --muted: #68716b;
+  --line: #d8dad4;
+  --acid: #e0c341;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 1180px;
+  min-height: 100vh;
+  background: #f2f2ed;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  color: inherit;
+}

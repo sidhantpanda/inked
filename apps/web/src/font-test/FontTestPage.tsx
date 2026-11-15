@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import type { PaintResponse } from '@inked/commons';
 
-import { DownloadIcon, PaintIcon } from './icons';
+import { DownloadIcon, PaintIcon } from '../icons';
 
 interface Status {
   kind: 'idle' | 'working' | 'success' | 'error';

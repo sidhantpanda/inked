@@ -1,0 +1,9 @@
+@media (max-width: 1320px) {
+  .workspace {
+    grid-template-columns: 236px minmax(0, 1fr) 276px;
+  }
+  .studio {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}

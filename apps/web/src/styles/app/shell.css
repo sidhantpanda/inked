@@ -1,0 +1,46 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  position: relative;
+  z-index: 20;
+  height: 74px;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(250, 250, 246, 0.92);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  font-size: 14px;
+}
+.brand-mark {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--acid);
+  border-radius: 7px 7px 2px 7px;
+  font-family: 'Inked Serif', serif;
+  font-style: italic;
+  font-size: 18px;
+}
+.eyebrow {
+  color: #7b837d;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+}

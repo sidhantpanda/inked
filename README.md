@@ -32,7 +32,7 @@ The catalog includes ten fixed, code-defined compositions, ranging from three to
 
 Six widgets are implemented for the standard small, wide, tall, large, and full placements: date, weather, calendar, sports, stocks, and message. Content density adapts to the available panel size—for example, Weather expands from current conditions to a seven-day forecast, while Date adds week context without showing a fast-changing clock.
 
-Every widget has a typed input, its own React component, a native canvas renderer, and a counterpart server fetcher. The fetcher registry composes those independent inputs into the dashboard response; replace an individual demo fetcher with a production weather, calendar, or scores adapter without changing unrelated widgets.
+Every widget has a typed input, its own React component, a native canvas renderer, and a counterpart server fetcher. Each piece lives in a per-widget file with the same name across packages: types in `packages/commons/src/types/<widget>.ts`, the content plan in `packages/commons/src/widgets/<widget>.ts`, the native renderer in `apps/server/src/render/widgets/<widget>/` (see its README), the fetcher in `apps/server/src/widget-data/<widget>.ts`, and the studio options editor in `apps/web/src/settings/`. The fetcher registry composes those independent inputs into the dashboard response; replace an individual demo fetcher with a production weather, calendar, or scores adapter without changing unrelated widgets.
 
 ### Per-widget options
 

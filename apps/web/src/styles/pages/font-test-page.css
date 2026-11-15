@@ -1,0 +1,70 @@
+.font-test-page {
+  min-height: 100vh;
+  background: #f2f2ed;
+}
+.font-test-topbar {
+  grid-template-columns: 250px 1fr auto;
+}
+.font-test-main {
+  width: min(1000px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 52px 0 64px;
+}
+.font-test-heading {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: end;
+  gap: 72px;
+  margin-bottom: 25px;
+}
+.font-test-heading h1 {
+  margin: 8px 0 0;
+  font-family: 'Inked Serif', serif;
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+.font-test-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.font-test-frame {
+  padding: 16px;
+  border-radius: 16px;
+  background: #202722;
+  box-shadow: 0 24px 55px rgba(27, 35, 30, 0.13);
+}
+.font-test-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 3;
+  background: #fff;
+}
+.font-test-notes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+.font-test-notes > div {
+  padding: 15px 17px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fafaf6;
+}
+.font-test-notes strong,
+.font-test-notes span {
+  display: block;
+}
+.font-test-notes strong {
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+.font-test-notes span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}

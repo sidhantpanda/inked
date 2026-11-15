@@ -1,0 +1,51 @@
+.theme-control {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.control-label {
+  color: #69726c;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.theme-row + .control-label {
+  margin-top: 6px;
+}
+.theme-row {
+  display: flex;
+  gap: 8px;
+}
+.theme-swatch,
+.accent-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #bec3bd;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 3px #fafaf6;
+}
+.theme-swatch.is-selected,
+.accent-swatch.is-selected {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.theme-swatch--paper {
+  background: #e9e8e1;
+}
+.theme-swatch--mist {
+  background: #cbd9de;
+}
+.theme-swatch--night {
+  background: #1d2621;
+}
+.accent-swatch--citrus {
+  background: #e0c341;
+}
+.accent-swatch--coral {
+  background: #ef6a52;
+}
+.accent-swatch--cobalt {
+  background: #3f61e8;
+}

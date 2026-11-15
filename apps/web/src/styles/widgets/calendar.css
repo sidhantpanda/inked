@@ -1,0 +1,31 @@
+.event-list {
+  margin-top: 8px;
+}
+.event {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  padding: 4% 0;
+  border-top: 1px solid var(--display-line);
+}
+.event:first-child {
+  border-top: 0;
+}
+.event time {
+  color: var(--display-muted);
+  font-size: var(--widget-min-font-size);
+  font-weight: 720;
+}
+.event strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(var(--widget-min-font-size), 1.2vw, 16px);
+}
+.event span {
+  display: block;
+  margin-top: 3px;
+  color: var(--display-muted);
+  font-size: var(--widget-min-font-size);
+}

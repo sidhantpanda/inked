@@ -12,7 +12,7 @@ import {
 import { fetchCalendarWidgetInput } from './calendar.js';
 import { fetchDateWidgetInput } from './date.js';
 import { fetchMessageWidgetInput } from './message.js';
-import { fetchScoresWidgetInput } from './scores.js';
+import { fetchScoresWidgetInput } from './sports.js';
 import { fetchStocksWidgetInput } from './stocks.js';
 import type {
   WidgetDataFetcher,

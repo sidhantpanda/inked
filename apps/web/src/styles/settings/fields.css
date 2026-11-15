@@ -1,0 +1,59 @@
+.inspector-options {
+  margin-top: 4px;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 11px;
+}
+.settings-field span {
+  color: #69726c;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.settings-field input,
+.settings-field textarea,
+.settings-field select {
+  border: 1px solid #cfd2cc;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  resize: vertical;
+}
+.settings-field input:focus,
+.settings-field textarea:focus,
+.settings-field select:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.unit-toggle {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid #d1d5cf;
+  border-radius: 9px;
+  background: #f1f2ec;
+  align-self: flex-start;
+}
+.unit-toggle button {
+  min-width: 42px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b746e;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.unit-toggle button.is-selected {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(27, 33, 29, 0.1);
+}

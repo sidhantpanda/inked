@@ -1,0 +1,17 @@
+.message-title {
+  max-width: 92%;
+  margin: 8% 0 0;
+  font-family: 'Inked Serif', serif;
+  font-size: clamp(15px, 3vw, 39px);
+  line-height: 0.98;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.message-detail {
+  position: absolute;
+  left: 5.2%;
+  bottom: 8%;
+  margin: 0;
+  color: var(--display-muted);
+  font-size: var(--widget-min-font-size);
+}

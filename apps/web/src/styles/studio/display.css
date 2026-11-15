@@ -1,0 +1,63 @@
+.empty-slot {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  border: 1px dashed #aeb4ae;
+  border-radius: 9px;
+  color: #747c76;
+  font-size: 11px;
+}
+.canvas-caption {
+  max-width: 900px;
+  margin: 21px auto 0;
+  color: #727a74;
+  text-align: center;
+  font-size: 11px;
+}
+.canvas-caption span {
+  padding: 3px 6px;
+  margin-right: 5px;
+  border-radius: 4px;
+  background: #e1e3dc;
+  color: #4f5852;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.display {
+  --display-accent: #e0c341;
+  --display-accent-ink: #241d02;
+  --display-card: #fbfaf4;
+  --display-card-alt: #dce4d4;
+  --display-ink: #18211c;
+  --display-muted: #667068;
+  --display-line: #ccd0c9;
+}
+.display--mist {
+  --display-card: #f5f8f6;
+  --display-card-alt: #cbd9de;
+  --display-ink: #142127;
+  --display-muted: #607078;
+  --display-line: #becacd;
+}
+.display--night {
+  --display-card: #1d2621;
+  --display-card-alt: #26332c;
+  --display-ink: #f4f5ec;
+  --display-muted: #a9b5ab;
+  --display-line: #3a463f;
+}
+.accent--citrus {
+  --display-accent: #e0c341;
+  --display-accent-ink: #241d02;
+}
+.accent--coral {
+  --display-accent: #ef6a52;
+  --display-accent-ink: #2a0f09;
+}
+.accent--cobalt {
+  --display-accent: #3f61e8;
+  --display-accent-ink: #fff;
+}

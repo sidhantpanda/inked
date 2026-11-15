@@ -1,0 +1,94 @@
+.calendar-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.calendar-account {
+  padding: 11px 12px;
+  border: 1px solid #e0e2dc;
+  border-radius: 10px;
+  background: #f7f8f3;
+}
+.calendar-account-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.calendar-account-head strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 660;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-account-remove {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #8a746f;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.calendar-account-remove:hover {
+  border-color: #e0b3ab;
+  color: #c0392b;
+}
+.calendar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.calendar-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.calendar-check:hover {
+  background: #eef0ea;
+}
+.calendar-check input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--ink);
+}
+.calendar-check span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-check em {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.calendar-connect {
+  padding: 9px 12px;
+  border: 1px dashed #c4c9c1;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 660;
+  cursor: pointer;
+}
+.calendar-connect:hover {
+  border-color: var(--ink);
+}

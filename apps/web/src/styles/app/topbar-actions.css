@@ -1,0 +1,77 @@
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: 7px;
+}
+.status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9aa19c;
+}
+.status--working i {
+  background: #efb03b;
+  animation: pulse 1s infinite;
+}
+.status--success i {
+  background: #52a56b;
+}
+.status--error i {
+  background: #d45e4f;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.button {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #cfd2cc;
+  border-radius: 8px;
+  padding: 0 15px;
+  background: #fff;
+  font-weight: 680;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.button:hover {
+  transform: translateY(-1px);
+}
+.button:disabled,
+.canvas-meta button:disabled {
+  cursor: wait;
+  opacity: 0.48;
+  transform: none;
+}
+.button--primary {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.button--ghost svg {
+  width: 15px;
+}
+.topbar-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 3px;
+  background: var(--line);
+}
+
+.button--primary svg {
+  width: 16px;
+  color: var(--acid);
+}
